@@ -272,6 +272,7 @@ export function EposTerminal() {
             <OrderReceipt
               order={selectedOrder}
               onUpdateStatus={store.updateOrderStatus}
+              onPrintOrder={printOrderReceipt}
             />
           </div>
 

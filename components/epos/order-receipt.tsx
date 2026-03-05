@@ -25,6 +25,7 @@ import { useCountdown } from "@/hooks/use-countdown"
 type OrderReceiptProps = {
   order: Order | null
   onUpdateStatus: (orderId: string, status: OrderStatus) => void
+  onPrintOrder?: (order: Order) => void
 }
 
 const statusConfig: Record<
@@ -98,7 +99,11 @@ function calcItemLineTotal(entry: OrderItem): number {
   return (base + addOnsTotal + customAddOnsTotal) * entry.quantity
 }
 
-export function OrderReceipt({ order, onUpdateStatus }: OrderReceiptProps) {
+export function OrderReceipt({
+  order,
+  onUpdateStatus,
+  onPrintOrder,
+}: OrderReceiptProps) {
   if (!order) {
     return (
       <div className="flex h-full flex-col items-center justify-center rounded-xl border border-border bg-card text-muted-foreground">
@@ -109,10 +114,24 @@ export function OrderReceipt({ order, onUpdateStatus }: OrderReceiptProps) {
     )
   }
 
-  return <OrderReceiptContent order={order} onUpdateStatus={onUpdateStatus} />
+  return (
+    <OrderReceiptContent
+      order={order}
+      onUpdateStatus={onUpdateStatus}
+      onPrintOrder={onPrintOrder}
+    />
+  )
 }
 
-function OrderReceiptContent({ order, onUpdateStatus }: { order: Order; onUpdateStatus: (orderId: string, status: OrderStatus) => void }) {
+function OrderReceiptContent({
+  order,
+  onUpdateStatus,
+  onPrintOrder,
+}: {
+  order: Order
+  onUpdateStatus: (orderId: string, status: OrderStatus) => void
+  onPrintOrder?: (order: Order) => void
+}) {
   const config = statusConfig[order.status]
   const StatusIcon = config.icon
   const { readyByFormatted, countdownText, isOverdue, isUrgent } =
@@ -384,6 +403,16 @@ function OrderReceiptContent({ order, onUpdateStatus }: { order: Order; onUpdate
           <span className="text-3xl font-bold text-card-foreground">
             {"£"}{order.total.toFixed(2)}
           </span>
+        </div>
+        <div className="mb-2 flex gap-2">
+          {onPrintOrder && (
+            <button
+              onClick={() => onPrintOrder(order)}
+              className="w-full rounded-lg border border-border bg-secondary py-2.5 text-sm font-bold uppercase tracking-wider text-card-foreground transition-all hover:brightness-105 active:scale-[0.98]"
+            >
+              Print Receipt
+            </button>
+          )}
         </div>
         <div className="flex gap-2">
           {nextAction && (
