@@ -232,7 +232,7 @@ export function EposTerminal() {
         <div className="grid min-h-0 flex-1 grid-cols-3 gap-4 p-4 lg:p-6">
           {/* Left 2/3 - Categories + Menu Grid */}
           <div className="col-span-2 flex min-h-0 gap-4">
-            <div className="w-44 shrink-0 min-h-0 overflow-y-auto">
+            <div className="w-60 shrink-0 min-h-0 overflow-y-auto">
               <CategoryTabs
                 categories={menuStore.categories}
                 activeCategory={activeCategory}

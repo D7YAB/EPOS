@@ -23,19 +23,13 @@ export function CategoryTabs({
             key={cat.id}
             onClick={() => onCategoryChange(cat.id)}
             className={cn(
-              "flex items-center gap-3 rounded-lg px-4 py-3.5 text-left text-sm font-bold uppercase tracking-wide transition-all",
+              "flex w-full items-center rounded-lg px-4 py-3 text-left text-sm font-semibold leading-tight transition-all",
               isActive
                 ? "bg-primary text-primary-foreground shadow-sm"
                 : "text-muted-foreground hover:bg-secondary hover:text-foreground"
             )}
           >
-            <div
-              className={cn(
-                "h-2.5 w-2.5 shrink-0 rounded-full",
-                cat.color
-              )}
-            />
-            {cat.name}
+            <span className="block w-full break-words">{cat.name}</span>
           </button>
         )
       })}
