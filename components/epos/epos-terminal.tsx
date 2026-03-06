@@ -31,8 +31,19 @@ export function EposTerminal() {
   const store = useEposStore()
   const menuStore = useMenuStore()
 
+  const isToday = (date: Date) => {
+    const now = new Date()
+    return (
+      date.getDate() === now.getDate() &&
+      date.getMonth() === now.getMonth() &&
+      date.getFullYear() === now.getFullYear()
+    )
+  }
+
+  const todaysOrders = store.orders.filter((o) => isToday(o.createdAt))
+
   const selectedOrder =
-    store.orders.find((o) => o.id === selectedOrderId) ?? null
+    todaysOrders.find((o) => o.id === selectedOrderId) ?? null
 
   const printOrderReceipt = (order: Order) => {
     const receiptWindow = window.open("", "_blank", "width=420,height=700")
@@ -179,6 +190,7 @@ export function EposTerminal() {
             Orders
             {store.orders.filter(
               (o) =>
+                isToday(o.createdAt) &&
                 o.status !== "collected" &&
                 o.status !== "delivered" &&
                 o.status !== "cancelled"
@@ -187,6 +199,7 @@ export function EposTerminal() {
                 {
                   store.orders.filter(
                     (o) =>
+                      isToday(o.createdAt) &&
                       o.status !== "collected" &&
                       o.status !== "delivered" &&
                       o.status !== "cancelled"
@@ -323,7 +336,7 @@ export function EposTerminal() {
           {/* Right 1/3 - Orders List */}
           <div className="col-span-1 min-h-0 overflow-hidden">
             <OrdersList
-              orders={store.orders}
+              orders={todaysOrders}
               selectedOrderId={selectedOrderId}
               onSelectOrder={setSelectedOrderId}
             />
