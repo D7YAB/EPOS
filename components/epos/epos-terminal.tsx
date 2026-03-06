@@ -79,7 +79,10 @@ export function EposTerminal() {
           addOnLines.length > 0
             ? `<div style="margin-top:4px;font-size:11px;color:#555;">${addOnLines.join("<br/>")}</div>`
             : ""
-        return `<tr><td>${entry.quantity} x ${entry.item.name}${variation}${addOnMarkup}</td><td style="text-align:right">${currency(total)}</td></tr>`
+        const commentMarkup = entry.comment
+          ? `<div style="margin-top:4px;font-size:11px;color:#555;"><em>Note: ${entry.comment}</em></div>`
+          : ""
+        return `<tr><td>${entry.quantity} x ${entry.item.name}${variation}${addOnMarkup}${commentMarkup}</td><td style="text-align:right">${currency(total)}</td></tr>`
       })
       .join("")
 
