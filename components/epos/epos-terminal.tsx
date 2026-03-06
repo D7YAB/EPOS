@@ -206,7 +206,7 @@ export function EposTerminal() {
             <p class="total">${order.paymentStatus === "paid" ? `Paid (${order.paymentMethod ?? "cash"})` : "Unpaid"}</p>
             <p class="total">Total: ${currency(order.total)}</p>
           </div>
-          ${customerLines.length ? `<p>Customer: ${customerLines.join(", ")}</p>` : ""}
+          ${customerLines.length ? `<p style="text-align:center;">Customer: ${customerLines.join(", ")}</p>` : ""}
           
           <script>
             window.onload = () => {
