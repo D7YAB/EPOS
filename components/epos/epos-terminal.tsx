@@ -237,7 +237,10 @@ export function EposTerminal() {
               <CategoryTabs
                 categories={menuStore.categories}
                 activeCategory={activeCategory}
-                onCategoryChange={setActiveCategory}
+                onCategoryChange={(categoryId) => {
+                  setActiveCategory(categoryId)
+                  setMenuSearch("")
+                }}
               />
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto">
