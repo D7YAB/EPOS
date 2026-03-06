@@ -23,6 +23,19 @@ type AnalyticsPanelProps = {
   onClose: () => void
 }
 
+function calcOrderItemLineTotal(entry: Order["items"][number]): number {
+  const base = entry.item.price + (entry.selectedVariation?.priceModifier ?? 0)
+  const addOnsTotal = entry.addOns.reduce(
+    (sum, a) => sum + a.addOn.price * a.quantity,
+    0
+  )
+  const customAddOnsTotal = entry.customAddOns.reduce(
+    (sum, c) => sum + c.price,
+    0
+  )
+  return (base + addOnsTotal + customAddOnsTotal) * entry.quantity
+}
+
 export function AnalyticsPanel({ orders, onClose }: AnalyticsPanelProps) {
   const todayOrders = orders.filter((o) => {
     const today = new Date()
@@ -34,12 +47,13 @@ export function AnalyticsPanel({ orders, onClose }: AnalyticsPanelProps) {
   })
 
   // Revenue
-  const totalRevenue = todayOrders.reduce((sum, o) => sum + o.total, 0)
-  const completedOrders = todayOrders.filter(
+  const cancelledOrders = todayOrders.filter((o) => o.status === "cancelled")
+  const nonCancelledOrders = todayOrders.filter((o) => o.status !== "cancelled")
+  const totalRevenue = nonCancelledOrders.reduce((sum, o) => sum + o.total, 0)
+  const completedOrders = nonCancelledOrders.filter(
     (o) => o.status === "collected" || o.status === "delivered"
   )
-  const cancelledOrders = todayOrders.filter((o) => o.status === "cancelled")
-  const pendingOrders = todayOrders.filter(
+  const pendingOrders = nonCancelledOrders.filter(
     (o) =>
       o.status === "preparing" ||
       o.status === "ready" ||
@@ -49,13 +63,13 @@ export function AnalyticsPanel({ orders, onClose }: AnalyticsPanelProps) {
   const pendingRevenue = pendingOrders.reduce((sum, o) => sum + o.total, 0)
   const cancelledRevenue = cancelledOrders.reduce((sum, o) => sum + o.total, 0)
   const avgOrderValue =
-    todayOrders.length > 0 ? totalRevenue / todayOrders.length : 0
+    nonCancelledOrders.length > 0 ? totalRevenue / nonCancelledOrders.length : 0
 
   // Order type breakdown
   const ordersByType: Record<OrderType, Order[]> = {
-    instore: todayOrders.filter((o) => o.orderType === "instore"),
-    collection: todayOrders.filter((o) => o.orderType === "collection"),
-    delivery: todayOrders.filter((o) => o.orderType === "delivery"),
+    instore: nonCancelledOrders.filter((o) => o.orderType === "instore"),
+    collection: nonCancelledOrders.filter((o) => o.orderType === "collection"),
+    delivery: nonCancelledOrders.filter((o) => o.orderType === "delivery"),
   }
 
   const typeConfig: Record<
@@ -115,30 +129,31 @@ export function AnalyticsPanel({ orders, onClose }: AnalyticsPanelProps) {
   }
 
   // Payment breakdown
-  const paidCash = todayOrders.filter(
+  const paidCash = nonCancelledOrders.filter(
     (o) => o.paymentStatus === "paid" && o.paymentMethod === "cash"
   )
-  const paidCard = todayOrders.filter(
+  const paidCard = nonCancelledOrders.filter(
     (o) => o.paymentStatus === "paid" && o.paymentMethod === "card"
   )
-  const unpaidOrders = todayOrders.filter((o) => o.paymentStatus === "unpaid")
+  const unpaidOrders = nonCancelledOrders.filter((o) => o.paymentStatus === "unpaid")
   const paidCashRevenue = paidCash.reduce((sum, o) => sum + o.total, 0)
   const paidCardRevenue = paidCard.reduce((sum, o) => sum + o.total, 0)
   const unpaidRevenue = unpaidOrders.reduce((sum, o) => sum + o.total, 0)
 
   // Top selling items
   const itemSales = new Map<string, { name: string; qty: number; revenue: number }>()
-  todayOrders.forEach((order) => {
+  nonCancelledOrders.forEach((order) => {
     order.items.forEach((entry) => {
+      const lineTotal = calcOrderItemLineTotal(entry)
       const existing = itemSales.get(entry.item.id)
       if (existing) {
         existing.qty += entry.quantity
-        existing.revenue += entry.item.price * entry.quantity
+        existing.revenue += lineTotal
       } else {
         itemSales.set(entry.item.id, {
           name: entry.item.name,
           qty: entry.quantity,
-          revenue: entry.item.price * entry.quantity,
+          revenue: lineTotal,
         })
       }
     })
@@ -229,8 +244,8 @@ export function AnalyticsPanel({ orders, onClose }: AnalyticsPanelProps) {
                 ].map((item) => {
                   const Icon = item.icon
                   const pct =
-                    todayOrders.length > 0
-                      ? (item.count / todayOrders.length) * 100
+                    nonCancelledOrders.length > 0
+                      ? (item.count / nonCancelledOrders.length) * 100
                       : 0
                   return (
                     <div key={item.label} className="flex flex-col gap-2">
@@ -284,8 +299,8 @@ export function AnalyticsPanel({ orders, onClose }: AnalyticsPanelProps) {
                     0
                   )
                   const pct =
-                    todayOrders.length > 0
-                      ? (typeOrders.length / todayOrders.length) * 100
+                    nonCancelledOrders.length > 0
+                      ? (typeOrders.length / nonCancelledOrders.length) * 100
                       : 0
                   return (
                     <div key={type} className="flex flex-col gap-2">
