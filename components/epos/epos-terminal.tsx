@@ -115,6 +115,17 @@ export function EposTerminal() {
       order.customer.city,
       order.customer.postcode,
     ].filter(Boolean)
+    const itemsSubtotal = order.items.reduce((sum, entry) => {
+      const base = entry.item.price + (entry.selectedVariation?.priceModifier ?? 0)
+      const addOnsTotal = entry.addOns.reduce(
+        (s, a) => s + a.addOn.price * a.quantity,
+        0
+      )
+      const customAddOnsTotal = entry.customAddOns.reduce((s, c) => s + c.price, 0)
+      return sum + (base + addOnsTotal + customAddOnsTotal) * entry.quantity
+    }, 0)
+    const deliveryCharge =
+      order.orderType === "delivery" ? Math.max(0, order.total - itemsSubtotal) : 0
 
     const lines = order.items
       .map((entry) => {
@@ -175,6 +186,12 @@ export function EposTerminal() {
           ${customerLines.length ? `<p>Customer: ${customerLines.join(", ")}</p>` : ""}
           ${order.orderComment ? `<p>Note: ${order.orderComment}</p>` : ""}
           <table>${lines}</table>
+          <p style="margin-top:10px;font-size:12px;text-align:right;">Subtotal: ${currency(itemsSubtotal)}</p>
+          ${
+            order.orderType === "delivery"
+              ? `<p style="font-size:12px;text-align:right;">Delivery: ${currency(deliveryCharge)}</p>`
+              : ""
+          }
           <p class="total">Total: ${currency(order.total)}</p>
           <script>
             window.onload = () => {

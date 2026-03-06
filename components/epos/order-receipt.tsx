@@ -99,6 +99,10 @@ function calcItemLineTotal(entry: OrderItem): number {
   return (base + addOnsTotal + customAddOnsTotal) * entry.quantity
 }
 
+function calcItemsSubtotal(order: Order): number {
+  return order.items.reduce((sum, entry) => sum + calcItemLineTotal(entry), 0)
+}
+
 export function OrderReceipt({
   order,
   onUpdateStatus,
@@ -161,6 +165,9 @@ function OrderReceiptContent({
 
   const typeInfo = orderTypeConfig[order.orderType]
   const TypeIcon = typeInfo.icon
+  const itemsSubtotal = calcItemsSubtotal(order)
+  const deliveryCharge =
+    order.orderType === "delivery" ? Math.max(0, order.total - itemsSubtotal) : 0
 
   return (
     <div className="flex h-full flex-col rounded-xl border border-border bg-card">
@@ -393,9 +400,17 @@ function OrderReceiptContent({
             Items ({order.items.reduce((sum, e) => sum + e.quantity, 0)})
           </span>
           <span className="text-sm text-muted-foreground">
-            {"£"}{order.total.toFixed(2)}
+            {"£"}{itemsSubtotal.toFixed(2)}
           </span>
         </div>
+        {order.orderType === "delivery" && (
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-muted-foreground">Delivery Charge</span>
+            <span className="text-sm text-muted-foreground">
+              {"£"}{deliveryCharge.toFixed(2)}
+            </span>
+          </div>
+        )}
         <div className="flex items-center justify-between mb-4">
           <span className="text-lg font-bold uppercase tracking-wide text-card-foreground">
             Total

@@ -69,6 +69,18 @@ function formatTime(date: Date) {
   })
 }
 
+function calcItemsSubtotal(order: Order): number {
+  return order.items.reduce((sum, entry) => {
+    const base = entry.item.price + (entry.selectedVariation?.priceModifier ?? 0)
+    const addOnsTotal = entry.addOns.reduce(
+      (s, a) => s + a.addOn.price * a.quantity,
+      0
+    )
+    const customAddOnsTotal = entry.customAddOns.reduce((s, c) => s + c.price, 0)
+    return sum + (base + addOnsTotal + customAddOnsTotal) * entry.quantity
+  }, 0)
+}
+
 function OrderCard({
   order,
   isSelected,
@@ -116,6 +128,9 @@ function OrderCard({
       {(() => {
         const typeInfo = orderTypeConfig[order.orderType]
         const TypeIcon = typeInfo.icon
+        const subtotal = calcItemsSubtotal(order)
+        const deliveryCharge =
+          order.orderType === "delivery" ? Math.max(0, order.total - subtotal) : 0
         const detail =
           order.orderType === "delivery"
             ? order.customer.addressLine1
@@ -127,6 +142,11 @@ function OrderCard({
               {typeInfo.label}
               {detail ? ` \u2022 ${detail}` : ""}
             </span>
+            {order.orderType === "delivery" && deliveryCharge > 0 && (
+              <span className="shrink-0 rounded bg-secondary px-1.5 py-0.5 text-[10px] font-semibold text-card-foreground">
+                +£{deliveryCharge.toFixed(2)}
+              </span>
+            )}
           </div>
         )
       })()}
