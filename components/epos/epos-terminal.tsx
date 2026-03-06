@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { ClipboardList, UtensilsCrossed, BarChart3, Pencil } from "lucide-react"
+import { ClipboardList, UtensilsCrossed, BarChart3, Pencil, Search, X } from "lucide-react"
 import { useEposStore } from "@/hooks/use-epos-store"
 import { useMenuStore } from "@/hooks/use-menu-store"
 import { CategoryTabs } from "./category-tabs"
@@ -26,6 +26,7 @@ type View = "menu" | "checkout" | "orders" | "analytics" | "editMenu"
 export function EposTerminal() {
   const [view, setView] = useState<View>("menu")
   const [activeCategory, setActiveCategory] = useState("burgers")
+  const [menuSearch, setMenuSearch] = useState("")
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
   const store = useEposStore()
   const menuStore = useMenuStore()
@@ -240,9 +241,28 @@ export function EposTerminal() {
               />
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto">
+              <div className="mb-3 flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2">
+                <Search className="h-4 w-4 text-muted-foreground" />
+                <input
+                  value={menuSearch}
+                  onChange={(e) => setMenuSearch(e.target.value)}
+                  placeholder="Search products across all categories..."
+                  className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+                />
+                {menuSearch.trim() && (
+                  <button
+                    onClick={() => setMenuSearch("")}
+                    className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
               <MenuGrid
                 items={menuStore.menuItems}
+                categories={menuStore.categories}
                 activeCategory={activeCategory}
+                searchQuery={menuSearch}
                 onAddItemFull={store.addToBasketFull}
               />
             </div>

@@ -1,13 +1,22 @@
 "use client"
 
 import { useState, useCallback } from "react"
-import type { MenuItem, ProductVariation, ProductAddOn, OrderItemAddOn, CustomAddOn } from "@/lib/menu-data"
+import type {
+  MenuItem,
+  Category,
+  ProductVariation,
+  ProductAddOn,
+  OrderItemAddOn,
+  CustomAddOn,
+} from "@/lib/menu-data"
 import { cn } from "@/lib/utils"
 import { X, Plus, Minus, MessageSquare } from "lucide-react"
 
 type MenuGridProps = {
   items: MenuItem[]
+  categories: Category[]
   activeCategory: string
+  searchQuery?: string
   onAddItemFull: (
     item: MenuItem,
     variation?: ProductVariation,
@@ -18,8 +27,20 @@ type MenuGridProps = {
   ) => void
 }
 
-export function MenuGrid({ items, activeCategory, onAddItemFull }: MenuGridProps) {
-  const filtered = items.filter((item) => item.category === activeCategory)
+export function MenuGrid({
+  items,
+  categories,
+  activeCategory,
+  searchQuery,
+  onAddItemFull,
+}: MenuGridProps) {
+  const query = searchQuery?.trim().toLowerCase() ?? ""
+  const isSearching = query.length > 0
+  const filtered = items.filter((item) => {
+    if (!isSearching) return item.category === activeCategory
+    return item.name.toLowerCase().includes(query)
+  })
+  const categoryNameById = new Map(categories.map((c) => [c.id, c.name]))
   const [optionsItem, setOptionsItem] = useState<MenuItem | null>(null)
 
   const hasOptions = (item: MenuItem) =>
@@ -53,6 +74,11 @@ export function MenuGrid({ items, activeCategory, onAddItemFull }: MenuGridProps
               <span className="text-sm font-semibold text-card-foreground leading-tight">
                 {item.name}
               </span>
+              {isSearching && (
+                <span className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  {categoryNameById.get(item.category) ?? item.category}
+                </span>
+              )}
               <div className="mt-2 flex items-baseline gap-1.5">
                 {isVariantPriced ? (
                   <>
@@ -76,6 +102,13 @@ export function MenuGrid({ items, activeCategory, onAddItemFull }: MenuGridProps
           )
         })}
       </div>
+      {filtered.length === 0 && (
+        <div className="rounded-lg border border-dashed border-border bg-card p-6 text-center text-sm text-muted-foreground">
+          {isSearching
+            ? "No products match your search."
+            : "No products in this category yet."}
+        </div>
+      )}
 
       {/* Product Options Popup */}
       {optionsItem && (
