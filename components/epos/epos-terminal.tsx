@@ -181,9 +181,9 @@ export function EposTerminal() {
             body { font-family: Arial, sans-serif; padding: 16px; color: #111; }
             h1 { margin: 0 0 4px; font-size: 20px; }
             h2 { margin: 0 0 4px; font-size: 28px; }
-            p { margin: 2px 0; font-size: 16px; }
+            p { margin: 2px 0; font-size: 14px; }
             table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-            td { padding: 6px 0; border-bottom: 1px dashed #ccc; font-size: 12px; vertical-align: top; }
+            td { padding: 6px 0; border-bottom: 1px dashed #ccc; font-size: 16px; vertical-align: top; }
             .total { font-weight: 700; font-size: 18px; margin-top: 12px; text-align: right; }
           </style>
         </head>
@@ -194,7 +194,6 @@ export function EposTerminal() {
         </div>
           <p>${createdAt}</p>
           <h2 style="margin:6px 0; text-align:center;">${order.orderType}</h2>
-          ${customerLines.length ? `<p>Customer: ${customerLines.join(", ")}</p>` : ""}
           ${order.orderComment ? `<p>Note: ${order.orderComment}</p>` : ""}
           <table>${lines}</table>
           <p style="margin-top:10px;font-size:12px;text-align:right;">Subtotal: ${currency(itemsSubtotal)}</p>
@@ -204,10 +203,10 @@ export function EposTerminal() {
               : ""
           }
           <div style="display:flex; justify-content:space-between; align-items:center;">
-            <p class="total">Payment: ${order.paymentStatus === "paid" ? `Paid (${order.paymentMethod ?? "cash"})` : "Unpaid"}</p>
+            <p class="total">${order.paymentStatus === "paid" ? `Paid (${order.paymentMethod ?? "cash"})` : "Unpaid"}</p>
             <p class="total">Total: ${currency(order.total)}</p>
           </div>
-          
+          ${customerLines.length ? `<p>Customer: ${customerLines.join(", ")}</p>` : ""}
           
           <script>
             window.onload = () => {
