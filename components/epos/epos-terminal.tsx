@@ -62,7 +62,20 @@ export function EposTerminal() {
         )
         const total = (base + addOnsTotal + customAddOnsTotal) * entry.quantity
         const variation = entry.selectedVariation ? ` (${entry.selectedVariation.name})` : ""
-        return `<tr><td>${entry.quantity} x ${entry.item.name}${variation}</td><td style="text-align:right">${currency(total)}</td></tr>`
+        const addOnLines = [
+          ...entry.addOns.map(
+            (a) =>
+              `+ ${a.addOn.name} x${a.quantity} (${currency(a.addOn.price * a.quantity)})`
+          ),
+          ...entry.customAddOns.map(
+            (c) => `+ ${c.name}${c.price > 0 ? ` (${currency(c.price)})` : ""}`
+          ),
+        ]
+        const addOnMarkup =
+          addOnLines.length > 0
+            ? `<div style="margin-top:4px;font-size:11px;color:#555;">${addOnLines.join("<br/>")}</div>`
+            : ""
+        return `<tr><td>${entry.quantity} x ${entry.item.name}${variation}${addOnMarkup}</td><td style="text-align:right">${currency(total)}</td></tr>`
       })
       .join("")
 
