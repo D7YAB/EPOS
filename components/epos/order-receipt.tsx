@@ -172,20 +172,20 @@ function OrderReceiptContent({
   return (
     <div className="flex h-full flex-col rounded-xl border border-border bg-card">
       {/* Receipt Header */}
-      <div className="border-b border-border px-6 py-5">
+      <div className="border-b border-border px-5 py-4">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
               Order
             </p>
-            <p className="text-4xl font-bold text-card-foreground">
+            <p className="text-3xl font-bold text-card-foreground">
               #{String(order.orderNumber).padStart(3, "0")}
             </p>
           </div>
-          <div className="flex flex-col items-end gap-2">
+          <div className="flex max-w-[70%] flex-wrap items-center justify-end gap-1.5">
             <div
               className={cn(
-                "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold uppercase tracking-wide",
+                "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide",
                 config.bg,
                 order.status === "cancelled"
                   ? "text-destructive"
@@ -199,16 +199,16 @@ function OrderReceiptContent({
                       : "text-[oklch(0.13_0_0)]"
               )}
             >
-              <StatusIcon className="h-4 w-4" />
+              <StatusIcon className="h-3.5 w-3.5" />
               {config.label}
             </div>
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted-foreground">
+            <div className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">
               <TypeIcon className="h-3.5 w-3.5" />
               {typeInfo.label}
             </div>
             <div
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
+                "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold",
                 order.paymentStatus === "paid"
                   ? "bg-[oklch(0.65_0.2_145)]/15 text-[oklch(0.65_0.2_145)]"
                   : "bg-destructive/15 text-destructive"
@@ -216,12 +216,12 @@ function OrderReceiptContent({
             >
               {order.paymentStatus === "paid" ? (
                 order.paymentMethod === "card" ? (
-                  <CreditCard className="h-3.5 w-3.5" />
+                  <CreditCard className="h-3 w-3" />
                 ) : (
-                  <Banknote className="h-3.5 w-3.5" />
+                  <Banknote className="h-3 w-3" />
                 )
               ) : (
-                <CircleSlash className="h-3.5 w-3.5" />
+                <CircleSlash className="h-3 w-3" />
               )}
               {order.paymentStatus === "paid"
                 ? `Paid - ${order.paymentMethod === "card" ? "Card" : "Cash"}`
