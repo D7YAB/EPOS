@@ -180,18 +180,20 @@ export function EposTerminal() {
           <style>
             body { font-family: Arial, sans-serif; padding: 16px; color: #111; }
             h1 { margin: 0 0 4px; font-size: 20px; }
-            p { margin: 2px 0; font-size: 12px; }
+            h2 { margin: 0 0 4px; font-size: 28px; }
+            p { margin: 2px 0; font-size: 16px; }
             table { width: 100%; border-collapse: collapse; margin-top: 12px; }
             td { padding: 6px 0; border-bottom: 1px dashed #ccc; font-size: 12px; vertical-align: top; }
-            .total { font-weight: 700; font-size: 15px; margin-top: 12px; text-align: right; }
+            .total { font-weight: 700; font-size: 18px; margin-top: 12px; text-align: right; }
           </style>
         </head>
         <body>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
           <h1>Diyab Ocean</h1>
           <p>Order #${String(order.orderNumber).padStart(3, "0")}</p>
+        </div>
           <p>${createdAt}</p>
-          <p>Type: ${order.orderType}</p>
-          <p>Payment: ${order.paymentStatus === "paid" ? `Paid (${order.paymentMethod ?? "cash"})` : "Unpaid"}</p>
+          <h2 style="margin:6px 0; text-align:center;">${order.orderType}</h2>
           ${customerLines.length ? `<p>Customer: ${customerLines.join(", ")}</p>` : ""}
           ${order.orderComment ? `<p>Note: ${order.orderComment}</p>` : ""}
           <table>${lines}</table>
@@ -201,7 +203,12 @@ export function EposTerminal() {
               ? `<p style="font-size:12px;text-align:right;">Delivery: ${currency(deliveryCharge)}</p>`
               : ""
           }
-          <p class="total">Total: ${currency(order.total)}</p>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <p class="total">Payment: ${order.paymentStatus === "paid" ? `Paid (${order.paymentMethod ?? "cash"})` : "Unpaid"}</p>
+            <p class="total">Total: ${currency(order.total)}</p>
+          </div>
+          
+          
           <script>
             window.onload = () => {
               window.print();
