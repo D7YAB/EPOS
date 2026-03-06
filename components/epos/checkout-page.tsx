@@ -15,8 +15,15 @@ import {
   MessageSquare,
 } from "lucide-react"
 import type { BasketItem } from "@/hooks/use-epos-store"
-import type { OrderType, CustomerDetails, PaymentStatus, PaymentMethod } from "@/lib/menu-data"
+import type {
+  Order,
+  OrderType,
+  CustomerDetails,
+  PaymentStatus,
+  PaymentMethod,
+} from "@/lib/menu-data"
 import { cn } from "@/lib/utils"
+import type { DeliveryCharge } from "@/components/epos/settings-panel"
 
 function calcLineTotal(entry: BasketItem): number {
   const base = entry.item.price + (entry.selectedVariation?.priceModifier ?? 0)
@@ -34,14 +41,28 @@ function calcLineTotal(entry: BasketItem): number {
 type CheckoutPageProps = {
   basket: BasketItem[]
   basketTotal: number
+  orders: Order[]
+  deliveryCharges: DeliveryCharge[]
   onPlaceOrder: (
     orderType: OrderType,
     customer: CustomerDetails,
     paymentStatus: PaymentStatus,
     paymentMethod: PaymentMethod,
-    orderComment?: string
+    orderComment?: string,
+    totalOverride?: number
   ) => Promise<void> | void
   onBack: () => void
+}
+
+function normalizePhone(phone?: string): string {
+  if (!phone) return ""
+  const digits = phone.replace(/\D/g, "")
+  return digits.length > 0 ? digits : phone.trim().toLowerCase()
+}
+
+function normalizePostcode(value?: string): string {
+  if (!value) return ""
+  return value.replace(/\s+/g, "").toUpperCase()
 }
 
 const orderTypes: {
@@ -73,6 +94,8 @@ const orderTypes: {
 export function CheckoutPage({
   basket,
   basketTotal,
+  orders,
+  deliveryCharges,
   onPlaceOrder,
   onBack,
 }: CheckoutPageProps) {
@@ -86,6 +109,17 @@ export function CheckoutPage({
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>("unpaid")
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(null)
   const [orderComment, setOrderComment] = useState("")
+  const [lastAutofilledPhone, setLastAutofilledPhone] = useState("")
+
+  const normalizedPostcode = normalizePostcode(postcode)
+  const matchedDeliveryCharge = [...deliveryCharges]
+    .sort((a, b) => b.postcodePrefix.length - a.postcodePrefix.length)
+    .find((entry) =>
+      normalizedPostcode.startsWith(normalizePostcode(entry.postcodePrefix))
+    )
+  const deliveryCharge =
+    orderType === "delivery" ? matchedDeliveryCharge?.charge ?? 0 : 0
+  const finalTotal = basketTotal + deliveryCharge
 
   const canSubmit = (() => {
     if (paymentStatus === "paid" && !paymentMethod) return false
@@ -123,8 +157,28 @@ export function CheckoutPage({
       customer,
       paymentStatus,
       paymentMethod,
-      orderComment.trim() || undefined
+      orderComment.trim() || undefined,
+      finalTotal
     )
+  }
+
+  const maybeAutofillFromPhone = (phoneValue: string) => {
+    const normalized = normalizePhone(phoneValue)
+    if (!normalized || normalized === lastAutofilledPhone) return
+
+    const matches = orders
+      .filter((o) => normalizePhone(o.customer.phone) === normalized)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+
+    const latest = matches[0]
+    if (!latest) return
+
+    if (latest.customer.name) setName(latest.customer.name)
+    if (latest.customer.addressLine1) setAddressLine1(latest.customer.addressLine1)
+    setAddressLine2(latest.customer.addressLine2 ?? "")
+    setCity(latest.customer.city ?? "")
+    setPostcode(latest.customer.postcode ?? "")
+    setLastAutofilledPhone(normalized)
   }
 
   return (
@@ -141,7 +195,7 @@ export function CheckoutPage({
         </button>
 
         {/* Order Type Selection */}
-        <div>
+        <div className="sticky top-0 z-20 bg-background pb-3">
           <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-muted-foreground">
             Order Type
           </h2>
@@ -221,7 +275,11 @@ export function CheckoutPage({
                 <input
                   type="tel"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    setPhone(value)
+                    maybeAutofillFromPhone(value)
+                  }}
                   placeholder="Phone number"
                   className="w-full rounded-lg border border-border bg-input px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 />
@@ -413,13 +471,15 @@ export function CheckoutPage({
         </div>
 
         {/* Confirm button */}
-        <button
-          onClick={handleSubmit}
-          disabled={!canSubmit}
-          className="w-full rounded-xl bg-primary py-4 text-base font-bold uppercase tracking-wider text-primary-foreground transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          {"Confirm & Place Order - £"}{basketTotal.toFixed(2)}
-        </button>
+        <div className="sticky bottom-0 z-20 bg-background pt-3">
+          <button
+            onClick={handleSubmit}
+            disabled={!canSubmit}
+            className="w-full rounded-xl bg-primary py-4 text-base font-bold uppercase tracking-wider text-primary-foreground transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {"Confirm & Place Order - £"}{finalTotal.toFixed(2)}
+          </button>
+        </div>
       </div>
 
       {/* Right 1/3 - Order Summary */}
@@ -487,12 +547,22 @@ export function CheckoutPage({
           </div>
 
           <div className="mt-auto shrink-0 border-t border-border bg-card px-4 py-4">
+            {orderType === "delivery" && (
+              <div className="mb-2 flex items-center justify-between text-sm">
+                <span className="font-medium text-muted-foreground">
+                  Delivery Charge
+                </span>
+                <span className="font-semibold text-card-foreground">
+                  {"£"}{deliveryCharge.toFixed(2)}
+                </span>
+              </div>
+            )}
             <div className="flex items-center justify-between">
               <span className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                 Total
               </span>
               <span className="text-2xl font-bold text-card-foreground">
-                {"£"}{basketTotal.toFixed(2)}
+                {"£"}{finalTotal.toFixed(2)}
               </span>
             </div>
           </div>

@@ -66,12 +66,19 @@ create index if not exists idx_product_add_ons_item on public.product_add_ons(it
 create index if not exists idx_order_items_order on public.order_items(order_id);
 create index if not exists idx_orders_created_at on public.orders(created_at desc);
 
+create table if not exists public.delivery_postcode_charges (
+  postcode_prefix text primary key,
+  charge numeric(10,2) not null check (charge >= 0),
+  created_at timestamptz not null default now()
+);
+
 alter table public.categories enable row level security;
 alter table public.menu_items enable row level security;
 alter table public.product_variations enable row level security;
 alter table public.product_add_ons enable row level security;
 alter table public.orders enable row level security;
 alter table public.order_items enable row level security;
+alter table public.delivery_postcode_charges enable row level security;
 
 drop policy if exists "open_categories" on public.categories;
 create policy "open_categories" on public.categories for all to anon, authenticated using (true) with check (true);
@@ -90,6 +97,9 @@ create policy "open_orders" on public.orders for all to anon, authenticated usin
 
 drop policy if exists "open_order_items" on public.order_items;
 create policy "open_order_items" on public.order_items for all to anon, authenticated using (true) with check (true);
+
+drop policy if exists "open_delivery_postcode_charges" on public.delivery_postcode_charges;
+create policy "open_delivery_postcode_charges" on public.delivery_postcode_charges for all to anon, authenticated using (true) with check (true);
 
 grant usage on schema public to anon, authenticated;
 grant select, insert, update, delete on all tables in schema public to anon, authenticated;

@@ -1,7 +1,15 @@
 "use client"
 
-import { useState } from "react"
-import { ClipboardList, UtensilsCrossed, BarChart3, Pencil, Search, X } from "lucide-react"
+import { useCallback, useEffect, useState } from "react"
+import {
+  ClipboardList,
+  UtensilsCrossed,
+  BarChart3,
+  Pencil,
+  Search,
+  X,
+  Settings,
+} from "lucide-react"
 import { useEposStore } from "@/hooks/use-epos-store"
 import { useMenuStore } from "@/hooks/use-menu-store"
 import { CategoryTabs } from "./category-tabs"
@@ -12,6 +20,7 @@ import { OrdersList } from "./orders-view"
 import { OrderReceipt } from "./order-receipt"
 import { AnalyticsPanel } from "./analytics-panel"
 import { MenuEditor } from "./menu-editor"
+import { SettingsPanel, type DeliveryCharge } from "./settings-panel"
 import { cn } from "@/lib/utils"
 import type {
   OrderType,
@@ -21,15 +30,62 @@ import type {
   Order,
 } from "@/lib/menu-data"
 
-type View = "menu" | "checkout" | "orders" | "analytics" | "editMenu"
+type View = "menu" | "checkout" | "orders" | "analytics" | "editMenu" | "settings"
 
 export function EposTerminal() {
   const [view, setView] = useState<View>("menu")
   const [activeCategory, setActiveCategory] = useState("burgers")
   const [menuSearch, setMenuSearch] = useState("")
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
+  const [deliveryCharges, setDeliveryCharges] = useState<DeliveryCharge[]>([])
   const store = useEposStore()
   const menuStore = useMenuStore()
+
+  const refreshDeliveryCharges = useCallback(async () => {
+    try {
+      const res = await fetch("/api/settings/delivery-charges", {
+        cache: "no-store",
+      })
+      if (!res.ok) return
+      const data = (await res.json()) as { deliveryCharges: DeliveryCharge[] }
+      setDeliveryCharges(data.deliveryCharges ?? [])
+    } catch {
+      // keep checkout usable if settings endpoint is unavailable
+    }
+  }, [])
+
+  useEffect(() => {
+    void refreshDeliveryCharges()
+  }, [refreshDeliveryCharges])
+
+  const upsertDeliveryCharge = useCallback(
+    async (postcodePrefix: string, charge: number) => {
+      const res = await fetch("/api/settings/delivery-charges", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "upsertCharge",
+          postcodePrefix,
+          charge,
+        }),
+      })
+      if (!res.ok) return
+      const data = (await res.json()) as { deliveryCharges: DeliveryCharge[] }
+      setDeliveryCharges(data.deliveryCharges ?? [])
+    },
+    []
+  )
+
+  const deleteDeliveryCharge = useCallback(async (postcodePrefix: string) => {
+    const res = await fetch("/api/settings/delivery-charges", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "deleteCharge", postcodePrefix }),
+    })
+    if (!res.ok) return
+    const data = (await res.json()) as { deliveryCharges: DeliveryCharge[] }
+    setDeliveryCharges(data.deliveryCharges ?? [])
+  }, [])
 
   const isToday = (date: Date) => {
     const now = new Date()
@@ -138,14 +194,16 @@ export function EposTerminal() {
     customer: CustomerDetails,
     paymentStatus: PaymentStatus,
     paymentMethod: PaymentMethod,
-    orderComment?: string
+    orderComment?: string,
+    totalOverride?: number
   ) => {
     const placedOrder = await store.placeOrder(
       orderType,
       customer,
       paymentStatus,
       paymentMethod,
-      orderComment
+      orderComment,
+      totalOverride
     )
     if (!placedOrder) return
     setSelectedOrderId(placedOrder.id)
@@ -239,6 +297,18 @@ export function EposTerminal() {
             <BarChart3 className="h-4 w-4" />
             <span className="hidden sm:inline">Analytics</span>
           </button>
+          <button
+            onClick={() => setView(view === "settings" ? "menu" : "settings")}
+            className={cn(
+              "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-all",
+              view === "settings"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+            )}
+          >
+            <Settings className="h-4 w-4" />
+            <span className="hidden sm:inline">Settings</span>
+          </button>
           <div className="hidden sm:flex items-center gap-2">
             <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
             <span className="text-xs font-medium text-muted-foreground">
@@ -254,12 +324,20 @@ export function EposTerminal() {
           orders={store.orders}
           onClose={() => setView("menu")}
         />
+      ) : view === "settings" ? (
+        <SettingsPanel
+          deliveryCharges={deliveryCharges}
+          onUpsertCharge={upsertDeliveryCharge}
+          onDeleteCharge={deleteDeliveryCharge}
+        />
       ) : view === "editMenu" ? (
         <MenuEditor menuStore={menuStore} />
       ) : view === "checkout" ? (
         <CheckoutPage
           basket={store.basket}
           basketTotal={store.basketTotal}
+          orders={store.orders}
+          deliveryCharges={deliveryCharges}
           onPlaceOrder={handlePlaceOrder}
           onBack={() => setView("menu")}
         />

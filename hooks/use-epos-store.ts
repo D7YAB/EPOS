@@ -288,7 +288,8 @@ export function useEposStore() {
       customer: CustomerDetails,
       paymentStatus: PaymentStatus,
       paymentMethod: PaymentMethod,
-      orderComment?: string
+      orderComment?: string,
+      totalOverride?: number
     ): Promise<Order | null> => {
       if (basket.length === 0) return null
 
@@ -309,7 +310,7 @@ export function useEposStore() {
             action: "placeOrder",
             order: {
               items: orderItems,
-              total: basketTotal,
+              total: totalOverride ?? basketTotal,
               orderType,
               customer,
               paymentStatus,
