@@ -9,7 +9,10 @@ import {
   Search,
   X,
   Settings,
+  Sun,
+  Moon,
 } from "lucide-react"
+import { useTheme } from "next-themes"
 import { useEposStore } from "@/hooks/use-epos-store"
 import { useMenuStore } from "@/hooks/use-menu-store"
 import { CategoryTabs } from "./category-tabs"
@@ -38,8 +41,14 @@ export function EposTerminal() {
   const [menuSearch, setMenuSearch] = useState("")
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
   const [deliveryCharges, setDeliveryCharges] = useState<DeliveryCharge[]>([])
+  const [mounted, setMounted] = useState(false)
   const store = useEposStore()
   const menuStore = useMenuStore()
+  const { theme, setTheme } = useTheme()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const refreshDeliveryCharges = useCallback(async () => {
     try {
@@ -286,6 +295,20 @@ export function EposTerminal() {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              if (!mounted) return
+              setTheme(theme === "light" ? "dark" : "light")
+            }}
+            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-muted-foreground transition-all hover:bg-secondary hover:text-foreground"
+          >
+            {mounted && theme === "light" ? (
+              <Moon className="h-4 w-4" />
+            ) : (
+              <Sun className="h-4 w-4" />
+            )}
+            <span className="hidden sm:inline">Theme</span>
+          </button>
           <button
             onClick={() =>
               setView(view === "editMenu" ? "menu" : "editMenu")
