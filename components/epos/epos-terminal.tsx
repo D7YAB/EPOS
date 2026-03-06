@@ -65,7 +65,11 @@ export function EposTerminal() {
         const addOnLines = [
           ...entry.addOns.map(
             (a) =>
-              `+ ${a.addOn.name} x${a.quantity} (${currency(a.addOn.price * a.quantity)})`
+              `+ ${a.addOn.name} x${a.quantity}${
+                a.addOn.price * a.quantity > 0
+                  ? ` (${currency(a.addOn.price * a.quantity)})`
+                  : ""
+              }`
           ),
           ...entry.customAddOns.map(
             (c) => `+ ${c.name}${c.price > 0 ? ` (${currency(c.price)})` : ""}`
