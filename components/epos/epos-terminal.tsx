@@ -113,6 +113,7 @@ export function EposTerminal() {
             window.onload = () => {
               window.print();
               window.onafterprint = () => window.close();
+              setTimeout(() => window.close(), 500);
             };
           </script>
         </body>
