@@ -59,6 +59,20 @@ function calcLineTotal(entry: BasketItem): number {
   return (base + addOnsTotal + customAddOnsTotal) * entry.quantity
 }
 
+function normalizeOrderItemAddOns(addOns: OrderItemAddOn[]): string {
+  return addOns
+    .map((a) => `${a.addOn.id}:${a.quantity}`)
+    .sort()
+    .join("|")
+}
+
+function normalizeCustomAddOns(customAddOns: CustomAddOn[]): string {
+  return customAddOns
+    .map((c) => `${c.name}:${c.price}`)
+    .sort()
+    .join("|")
+}
+
 function hydrateOrder(order: ApiOrder): Order {
   return {
     ...order,
@@ -219,17 +233,43 @@ export function useEposStore() {
       comment?: string,
       quantity?: number
     ) => {
+      const nextQuantity = quantity ?? 1
+      const nextAddOns = addOns ?? []
+      const nextCustomAddOns = customAddOns ?? []
+      const nextComment = comment || undefined
+
       setBasket((prev) => [
-        ...prev,
-        {
-          id: crypto.randomUUID(),
-          item,
-          quantity: quantity ?? 1,
-          selectedVariation: variation,
-          addOns: addOns ?? [],
-          customAddOns: customAddOns ?? [],
-          comment: comment || undefined,
-        },
+        ...(() => {
+          const existing = prev.find((b) => {
+            if (b.item.id !== item.id) return false
+            if (b.selectedVariation?.id !== variation?.id) return false
+            if (normalizeOrderItemAddOns(b.addOns) !== normalizeOrderItemAddOns(nextAddOns)) return false
+            if (normalizeCustomAddOns(b.customAddOns) !== normalizeCustomAddOns(nextCustomAddOns)) return false
+            if ((b.comment || undefined) !== nextComment) return false
+            return true
+          })
+
+          if (existing) {
+            return prev.map((b) =>
+              b.id === existing.id
+                ? { ...b, quantity: b.quantity + nextQuantity }
+                : b
+            )
+          }
+
+          return [
+            ...prev,
+            {
+              id: crypto.randomUUID(),
+              item,
+              quantity: nextQuantity,
+              selectedVariation: variation,
+              addOns: nextAddOns,
+              customAddOns: nextCustomAddOns,
+              comment: nextComment,
+            },
+          ]
+        })(),
       ])
     },
     []
