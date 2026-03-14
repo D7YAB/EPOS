@@ -208,9 +208,9 @@ export function EposTerminal() {
           </div>
           ${
             customerLines.length
-              ? `<div style="margin-top:10px;text-align:center;">
+              ? `<div style="margin-top:10px;">
                   <p style="font-weight:600;">Customer</p>
-                  ${customerLines.map((line) => `<p>${line}</p>`).join("")}
+                  ${customerLines.map((line) => `<p style="font-size: 20px;">${line}</p>`).join("")}
                 </div>`
               : ""
           }
