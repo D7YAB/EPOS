@@ -267,7 +267,7 @@ function OrderReceiptContent({
           )}
         </div>
         {/* Customer Details */}
-        <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-card-foreground">
+        <div className="mt-3 flex flex-col gap-1.5 text-sm text-card-foreground">
           {order.customer.name && (
             <span className="inline-flex items-center gap-1.5">
               <User className="h-3.5 w-3.5 text-muted-foreground" />
@@ -283,14 +283,25 @@ function OrderReceiptContent({
           {order.customer.addressLine1 && (
             <span className="inline-flex items-center gap-1.5">
               <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-              {[
-                order.customer.addressLine1,
-                order.customer.addressLine2,
-                order.customer.city,
-                order.customer.postcode,
-              ]
-                .filter(Boolean)
-                .join(", ")}
+              {order.customer.addressLine1}
+            </span>
+          )}
+          {order.customer.addressLine2 && (
+            <span className="inline-flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+              {order.customer.addressLine2}
+            </span>
+          )}
+          {order.customer.city && (
+            <span className="inline-flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+              {order.customer.city}
+            </span>
+          )}
+          {order.customer.postcode && (
+            <span className="inline-flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+              {order.customer.postcode}
             </span>
           )}
         </div>

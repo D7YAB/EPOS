@@ -55,19 +55,23 @@ export async function GET(req: Request) {
     }
     const postcode = normalizePostcode(postcodeRaw)
 
-    const cached = await supabaseRest<CachedPostcodeRow[]>(
-      "postcode_address_cache",
-      {
-        query: {
-          select: "postcode,addresses,updated_at",
-          postcode: `eq.${postcode}`,
-          limit: 1,
-        },
-      }
-    )
+    try {
+      const cached = await supabaseRest<CachedPostcodeRow[]>(
+        "postcode_address_cache",
+        {
+          query: {
+            select: "postcode,addresses,updated_at",
+            postcode: `eq.${postcode}`,
+            limit: 1,
+          },
+        }
+      )
 
-    if (cached?.length) {
-      return NextResponse.json({ addresses: cached[0].addresses ?? [] })
+      if (cached?.length) {
+        return NextResponse.json({ addresses: cached[0].addresses ?? [] })
+      }
+    } catch (err) {
+      console.error("Postcode cache read failed, falling back to API:", err)
     }
 
     if (!IDEAL_POSTCODES_API_KEY) {
