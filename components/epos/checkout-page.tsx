@@ -376,51 +376,10 @@ export function CheckoutPage({
             {orderType === "delivery" && (
               <>
                 <div className="flex flex-col gap-1.5">
-                  <label className="flex items-center gap-2 text-sm font-semibold text-card-foreground">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    Address Line 1
+                  <label className="text-sm font-semibold text-card-foreground">
+                    Postcode
                   </label>
                   <input
-                    type="text"
-                    value={addressLine1}
-                    onChange={(e) => setAddressLine1(e.target.value)}
-                    placeholder="House number and street"
-                    className="w-full rounded-lg border border-border bg-input px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="flex items-center gap-2 text-sm font-semibold text-card-foreground">
-                    Address Line 2
-                    <span className="text-xs font-normal text-muted-foreground">
-                      (optional)
-                    </span>
-                  </label>
-                  <input
-                    type="text"
-                    value={addressLine2}
-                    onChange={(e) => setAddressLine2(e.target.value)}
-                    placeholder="Flat, apartment, unit, etc."
-                    className="w-full rounded-lg border border-border bg-input px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-semibold text-card-foreground">
-                      City / Town
-                    </label>
-                    <input
-                      type="text"
-                      value={city}
-                      onChange={(e) => setCity(e.target.value)}
-                      placeholder="City or town"
-                      className="w-full rounded-lg border border-border bg-input px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-semibold text-card-foreground">
-                      Postcode
-                    </label>
-                <input
                     type="text"
                     value={postcode}
                     onChange={(e) => {
@@ -431,9 +390,8 @@ export function CheckoutPage({
                       debouncedLookup(value);
                     }}
                     placeholder="Postcode"
-                      className="w-full rounded-lg border border-border bg-input px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
+                    className="w-full rounded-lg border border-border bg-input px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
                 </div>
                 <div className="flex flex-col gap-2">
                   {isLoadingAddresses && (
@@ -448,7 +406,7 @@ export function CheckoutPage({
                   )}
                   {addresses.length > 0 && (
                     <select
-                      className="w-full rounded-lg border border-border bg-input px-4 py-3 text-sm"
+                      className="w-full rounded-lg border border-border bg-input px-4 py-3 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                       value={selectedAddressId}
                       onChange={(e) => {
                         const selectedId = e.target.value;
@@ -475,6 +433,50 @@ export function CheckoutPage({
                     </select>
                   )}
                 </div>
+                {selectedAddressId && (
+                  <>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="flex items-center gap-2 text-sm font-semibold text-card-foreground">
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        Address Line 1
+                      </label>
+                      <input
+                        type="text"
+                        value={addressLine1}
+                        onChange={(e) => setAddressLine1(e.target.value)}
+                        placeholder="House number and street"
+                        className="w-full rounded-lg border border-border bg-input px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="flex items-center gap-2 text-sm font-semibold text-card-foreground">
+                        Address Line 2
+                        <span className="text-xs font-normal text-muted-foreground">
+                          (optional)
+                        </span>
+                      </label>
+                      <input
+                        type="text"
+                        value={addressLine2}
+                        onChange={(e) => setAddressLine2(e.target.value)}
+                        placeholder="Flat, apartment, unit, etc."
+                        className="w-full rounded-lg border border-border bg-input px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-sm font-semibold text-card-foreground">
+                        City / Town
+                      </label>
+                      <input
+                        type="text"
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        placeholder="City or town"
+                        className="w-full rounded-lg border border-border bg-input px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                  </>
+                )}
               </>
             )}
           </div>
