@@ -139,6 +139,7 @@ export function CheckoutPage({
   const [isLoadingAddresses, setIsLoadingAddresses] = useState(false);
   const [addressLookupError, setAddressLookupError] = useState("");
   const [selectedAddressId, setSelectedAddressId] = useState("");
+  const [showAddressPicker, setShowAddressPicker] = useState(false);
   const [lastLookupPostcode, setLastLookupPostcode] = useState("");
 
   const normalizedPostcode = normalizePostcode(postcode);
@@ -170,6 +171,7 @@ export function CheckoutPage({
     if (!isCompleteUkPostcode(postcode)) {
       setAddresses([]);
       setSelectedAddressId("");
+      setShowAddressPicker(false);
       setAddressLookupError("");
       return;
     }
@@ -203,6 +205,7 @@ export function CheckoutPage({
 
       setAddresses(results);
       setSelectedAddressId("");
+      setShowAddressPicker(results.length > 0);
       if (results.length === 0) {
         setAddressLookupError("No addresses found for that postcode.");
       }
@@ -210,6 +213,7 @@ export function CheckoutPage({
       console.error("Address lookup failed:", err);
       setAddresses([]);
       setSelectedAddressId("");
+      setShowAddressPicker(false);
       setAddressLookupError("Address lookup failed. Please try again.");
     } finally {
       setIsLoadingAddresses(false);
@@ -405,32 +409,16 @@ export function CheckoutPage({
                     </p>
                   )}
                   {addresses.length > 0 && (
-                    <select
-                      className="w-full rounded-lg border border-border bg-input px-4 py-3 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                      value={selectedAddressId}
-                      onChange={(e) => {
-                        const selectedId = e.target.value;
-                        setSelectedAddressId(selectedId);
-                        const selected = addresses.find(
-                          (a) => a.id === selectedId,
-                        );
-                        if (!selected) return;
-                        setAddressLine1(selected.line1);
-                        const line2 = [selected.line2, selected.line3]
-                          .filter(Boolean)
-                          .join(", ");
-                        setAddressLine2(line2);
-                        setCity(selected.city ?? "");
-                        if (selected.postcode) setPostcode(selected.postcode);
-                      }}
+                    <button
+                      type="button"
+                      onClick={() => setShowAddressPicker(true)}
+                      className="w-full rounded-lg border border-border bg-input px-4 py-3 text-left text-sm text-foreground hover:border-primary/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                     >
-                      <option value="">Select address</option>
-                      {addresses.map((a) => (
-                        <option key={a.id} value={a.id}>
-                          {a.label}
-                        </option>
-                      ))}
-                    </select>
+                      {selectedAddressId
+                        ? addresses.find((a) => a.id === selectedAddressId)
+                            ?.label ?? "Change address"
+                        : "Select address"}
+                    </button>
                   )}
                 </div>
                 {selectedAddressId && (
@@ -481,6 +469,66 @@ export function CheckoutPage({
             )}
           </div>
         </div>
+        {showAddressPicker && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4">
+            <div className="w-full max-w-3xl rounded-2xl border border-border bg-card shadow-xl">
+              <div className="flex items-center justify-between border-b border-border px-5 py-4">
+                <div>
+                  <p className="text-base font-semibold text-card-foreground">
+                    Select an address
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {normalizePostcode(postcode)}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAddressPicker(false)}
+                  className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                >
+                  Close
+                </button>
+              </div>
+              <div className="max-h-[70vh] overflow-y-auto px-5 py-4">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {addresses.map((addr) => {
+                    const isSelected = addr.id === selectedAddressId;
+                    return (
+                      <button
+                        key={addr.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedAddressId(addr.id);
+                          setAddressLine1(addr.line1);
+                          const line2 = [addr.line2, addr.line3]
+                            .filter(Boolean)
+                            .join(", ");
+                          setAddressLine2(line2);
+                          setCity(addr.city ?? "");
+                          if (addr.postcode) setPostcode(addr.postcode);
+                          setShowAddressPicker(false);
+                        }}
+                        className={cn(
+                          "flex h-full flex-col gap-2 rounded-xl border px-4 py-3 text-left text-sm transition-all",
+                          isSelected
+                            ? "border-primary bg-primary/10"
+                            : "border-border bg-background hover:border-primary/40",
+                        )}
+                      >
+                        <span className="font-semibold text-card-foreground">
+                          {addr.label}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {addr.city ?? ""}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Payment Status */}
         <div>
