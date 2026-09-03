@@ -149,7 +149,6 @@ export function useEposStore() {
         )
       }
       return [
-        ...prev,
         {
           id: crypto.randomUUID(),
           item,
@@ -158,6 +157,7 @@ export function useEposStore() {
           addOns: [],
           customAddOns: [],
         },
+        ...prev,
       ]
     })
   }, [])
@@ -258,7 +258,6 @@ export function useEposStore() {
           }
 
           return [
-            ...prev,
             {
               id: crypto.randomUUID(),
               item,
@@ -268,6 +267,7 @@ export function useEposStore() {
               customAddOns: nextCustomAddOns,
               comment: nextComment,
             },
+            ...prev,
           ]
         })(),
       ])
