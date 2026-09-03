@@ -65,7 +65,7 @@ export function useMenuStore() {
     void refreshMenu()
   }, [refreshMenu])
 
-  const runAction = useCallback(async (payload: unknown) => {
+  const runAction = useCallback(async (payload: unknown): Promise<boolean> => {
     try {
       const res = await fetch("/api/menu", {
         method: "POST",
@@ -85,8 +85,10 @@ export function useMenuStore() {
       } else {
         await refreshMenu()
       }
+      return true
     } catch (error) {
       console.error("Menu action failed:", error)
+      return false
     }
   }, [refreshMenu])
 
@@ -113,9 +115,24 @@ export function useMenuStore() {
 
   const reorderCategories = useCallback(
     (orderedIds: string[]) => {
-      void runAction({ action: "reorderCategories", orderedIds })
+      const categoriesById = new Map(
+        categories.map((category) => [category.id, category])
+      )
+      const reordered: Category[] = orderedIds.flatMap((id, index) => {
+        const category = categoriesById.get(id)
+        return category ? [{ ...category, sortOrder: index }] : []
+      })
+
+      if (reordered.length !== categories.length) return
+
+      setCategories(reordered)
+      void runAction({ action: "reorderCategories", orderedIds }).then(
+        (saved) => {
+          if (!saved) void refreshMenu()
+        }
+      )
     },
-    [runAction]
+    [categories, refreshMenu, runAction]
   )
 
   const addItem = useCallback(
