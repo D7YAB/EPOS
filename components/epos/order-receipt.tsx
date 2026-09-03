@@ -17,6 +17,7 @@ import {
   CircleSlash,
   MessageSquare,
   XCircle,
+  Pencil,
 } from "lucide-react"
 import type { Order, OrderStatus, OrderType, OrderItem } from "@/lib/menu-data"
 import { cn } from "@/lib/utils"
@@ -26,6 +27,7 @@ type OrderReceiptProps = {
   order: Order | null
   onUpdateStatus: (orderId: string, status: OrderStatus) => void
   onPrintOrder?: (order: Order) => void
+  onEditOrder?: (order: Order) => void
 }
 
 const statusConfig: Record<
@@ -107,6 +109,7 @@ export function OrderReceipt({
   order,
   onUpdateStatus,
   onPrintOrder,
+  onEditOrder,
 }: OrderReceiptProps) {
   if (!order) {
     return (
@@ -123,6 +126,7 @@ export function OrderReceipt({
       order={order}
       onUpdateStatus={onUpdateStatus}
       onPrintOrder={onPrintOrder}
+      onEditOrder={onEditOrder}
     />
   )
 }
@@ -131,10 +135,12 @@ function OrderReceiptContent({
   order,
   onUpdateStatus,
   onPrintOrder,
+  onEditOrder,
 }: {
   order: Order
   onUpdateStatus: (orderId: string, status: OrderStatus) => void
   onPrintOrder?: (order: Order) => void
+  onEditOrder?: (order: Order) => void
 }) {
   const config = statusConfig[order.status]
   const StatusIcon = config.icon
@@ -146,6 +152,7 @@ function OrderReceiptContent({
     order.status === "preparing" ||
     order.status === "ready" ||
     order.status === "out_for_delivery"
+  const canEdit = canCancel
 
   const formatTime = (date: Date) =>
     date.toLocaleTimeString([], {
@@ -423,9 +430,18 @@ function OrderReceiptContent({
           {onPrintOrder && (
             <button
               onClick={() => onPrintOrder(order)}
-              className="w-full rounded-lg border border-border bg-secondary py-2.5 text-sm font-bold uppercase tracking-wider text-card-foreground transition-all hover:brightness-105 active:scale-[0.98]"
+              className="flex-1 rounded-lg border border-border bg-secondary py-2.5 text-sm font-bold uppercase tracking-wider text-card-foreground transition-all hover:brightness-105 active:scale-[0.98]"
             >
               Print Receipt
+            </button>
+          )}
+          {canEdit && onEditOrder && (
+            <button
+              onClick={() => onEditOrder(order)}
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-primary/40 bg-primary/10 py-2.5 text-sm font-bold uppercase tracking-wider text-primary transition-all hover:bg-primary/15 active:scale-[0.98]"
+            >
+              <Pencil className="h-4 w-4" />
+              Edit Order
             </button>
           )}
         </div>

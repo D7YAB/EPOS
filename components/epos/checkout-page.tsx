@@ -53,6 +53,7 @@ type CheckoutPageProps = {
   basketTotal: number;
   orders: Order[];
   deliveryCharges: DeliveryCharge[];
+  editingOrder?: Order | null;
   onPlaceOrder: (
     orderType: OrderType,
     customer: CustomerDetails,
@@ -121,24 +122,44 @@ export function CheckoutPage({
   basketTotal,
   orders,
   deliveryCharges,
+  editingOrder,
   onPlaceOrder,
   onBack,
 }: CheckoutPageProps) {
-  const [orderType, setOrderType] = useState<OrderType>("instore");
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [addressLine1, setAddressLine1] = useState("");
-  const [addressLine2, setAddressLine2] = useState("");
-  const [city, setCity] = useState("");
-  const [postcode, setPostcode] = useState("");
-  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>("unpaid");
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(null);
-  const [orderComment, setOrderComment] = useState("");
+  const [orderType, setOrderType] = useState<OrderType>(
+    editingOrder?.orderType ?? "instore",
+  );
+  const [name, setName] = useState(editingOrder?.customer.name ?? "");
+  const [phone, setPhone] = useState(editingOrder?.customer.phone ?? "");
+  const [addressLine1, setAddressLine1] = useState(
+    editingOrder?.customer.addressLine1 ?? "",
+  );
+  const [addressLine2, setAddressLine2] = useState(
+    editingOrder?.customer.addressLine2 ?? "",
+  );
+  const [city, setCity] = useState(editingOrder?.customer.city ?? "");
+  const [postcode, setPostcode] = useState(
+    editingOrder?.customer.postcode ?? "",
+  );
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(
+    editingOrder?.paymentStatus ?? "unpaid",
+  );
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
+    editingOrder?.paymentMethod ?? null,
+  );
+  const [orderComment, setOrderComment] = useState(
+    editingOrder?.orderComment ?? "",
+  );
   const [lastAutofilledPhone, setLastAutofilledPhone] = useState("");
   const [addresses, setAddresses] = useState<AddressResult[]>([]);
   const [isLoadingAddresses, setIsLoadingAddresses] = useState(false);
   const [addressLookupError, setAddressLookupError] = useState("");
-  const [selectedAddressId, setSelectedAddressId] = useState("");
+  const [selectedAddressId, setSelectedAddressId] = useState(
+    editingOrder?.orderType === "delivery" &&
+      editingOrder.customer.addressLine1
+      ? "existing-address"
+      : "",
+  );
   const [showAddressPicker, setShowAddressPicker] = useState(false);
   const [lastLookupPostcode, setLastLookupPostcode] = useState("");
 
@@ -282,6 +303,22 @@ export function CheckoutPage({
           <ArrowLeft className="h-4 w-4" />
           Back to Menu
         </button>
+
+        {editingOrder && (
+          <div className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/10 px-4 py-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-primary">
+                Editing existing order
+              </p>
+              <p className="text-sm font-semibold text-card-foreground">
+                Order #{String(editingOrder.orderNumber).padStart(3, "0")}
+              </p>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Saving will update this order without changing its number.
+            </p>
+          </div>
+        )}
 
         {/* Order Type Selection */}
         <div className="sticky top-0 z-20 bg-background pb-3">
@@ -694,8 +731,9 @@ export function CheckoutPage({
             disabled={!canSubmit}
             className="w-full rounded-xl bg-primary py-4 text-base font-bold uppercase tracking-wider text-primary-foreground transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {"Confirm & Place Order - £"}
-            {finalTotal.toFixed(2)}
+            {editingOrder
+              ? `Save Order #${String(editingOrder.orderNumber).padStart(3, "0")} - £${finalTotal.toFixed(2)}`
+              : `Confirm & Place Order - £${finalTotal.toFixed(2)}`}
           </button>
         </div>
       </div>
@@ -706,7 +744,7 @@ export function CheckoutPage({
           <div className="shrink-0 flex items-center gap-2 border-b border-border px-4 py-3">
             <ShoppingBag className="h-5 w-5 text-primary" />
             <h2 className="text-sm font-bold uppercase tracking-wide text-card-foreground">
-              Order Summary
+              {editingOrder ? "Updated Order Summary" : "Order Summary"}
             </h2>
           </div>
 

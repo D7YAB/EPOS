@@ -40,6 +40,7 @@ export function EposTerminal() {
   const [activeCategory, setActiveCategory] = useState("burgers")
   const [menuSearch, setMenuSearch] = useState("")
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null)
   const [deliveryCharges, setDeliveryCharges] = useState<DeliveryCharge[]>([])
   const [mounted, setMounted] = useState(false)
   const store = useEposStore()
@@ -236,6 +237,23 @@ export function EposTerminal() {
     orderComment?: string,
     totalOverride?: number
   ) => {
+    if (editingOrder) {
+      const updatedOrder = await store.updateOrder(
+        editingOrder.id,
+        orderType,
+        customer,
+        paymentStatus,
+        paymentMethod,
+        orderComment,
+        totalOverride
+      )
+      if (!updatedOrder) return
+      setEditingOrder(null)
+      setSelectedOrderId(updatedOrder.id)
+      setView("orders")
+      return
+    }
+
     const placedOrder = await store.placeOrder(
       orderType,
       customer,
@@ -248,6 +266,20 @@ export function EposTerminal() {
     setSelectedOrderId(placedOrder.id)
     setView("orders")
     printOrderReceipt(placedOrder)
+  }
+
+  const handleEditOrder = (order: Order) => {
+    store.loadOrderIntoBasket(order)
+    setEditingOrder(order)
+    setSelectedOrderId(order.id)
+    setMenuSearch("")
+    setView("menu")
+  }
+
+  const handleCancelEdit = () => {
+    store.clearBasket()
+    setEditingOrder(null)
+    setView("orders")
   }
 
   return (
@@ -391,6 +423,7 @@ export function EposTerminal() {
           basketTotal={store.basketTotal}
           orders={store.orders}
           deliveryCharges={deliveryCharges}
+          editingOrder={editingOrder}
           onPlaceOrder={handlePlaceOrder}
           onBack={() => setView("menu")}
         />
@@ -442,6 +475,7 @@ export function EposTerminal() {
               basket={store.basket}
               basketTotal={store.basketTotal}
               basketCount={store.basketCount}
+              editingOrderNumber={editingOrder?.orderNumber}
               onRemoveItem={store.removeFromBasket}
               onIncrementItem={store.incrementBasketItem}
               onClear={store.clearBasket}
@@ -450,6 +484,7 @@ export function EposTerminal() {
               onAddCustomAddOn={store.addBasketItemCustomAddOn}
               onRemoveCustomAddOn={store.removeBasketItemCustomAddOn}
               onUpdateComment={store.updateBasketItemComment}
+              onCancelEdit={editingOrder ? handleCancelEdit : undefined}
             />
           </div>
         </div>
@@ -461,6 +496,7 @@ export function EposTerminal() {
               order={selectedOrder}
               onUpdateStatus={store.updateOrderStatus}
               onPrintOrder={printOrderReceipt}
+              onEditOrder={handleEditOrder}
             />
           </div>
 

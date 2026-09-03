@@ -279,6 +279,23 @@ export function useEposStore() {
     setBasket([])
   }, [])
 
+  const loadOrderIntoBasket = useCallback((order: Order) => {
+    setBasket(
+      order.items.map((entry) => ({
+        id: crypto.randomUUID(),
+        item: entry.item,
+        quantity: entry.quantity,
+        selectedVariation: entry.selectedVariation,
+        addOns: entry.addOns.map((addOn) => ({
+          ...addOn,
+          addOn: { ...addOn.addOn },
+        })),
+        customAddOns: entry.customAddOns.map((addOn) => ({ ...addOn })),
+        comment: entry.comment,
+      }))
+    )
+  }, [])
+
   const basketTotal = basket.reduce((sum, b) => sum + calcLineTotal(b), 0)
   const basketCount = basket.reduce((sum, b) => sum + b.quantity, 0)
 
@@ -338,6 +355,70 @@ export function useEposStore() {
         return null
       } catch (error) {
         console.error("Place order failed:", error)
+        return null
+      }
+    },
+    [basket, basketTotal, refreshOrders]
+  )
+
+  const updateOrder = useCallback(
+    async (
+      orderId: string,
+      orderType: OrderType,
+      customer: CustomerDetails,
+      paymentStatus: PaymentStatus,
+      paymentMethod: PaymentMethod,
+      orderComment?: string,
+      totalOverride?: number
+    ): Promise<Order | null> => {
+      if (basket.length === 0) return null
+
+      const orderItems: OrderItem[] = basket.map((entry) => ({
+        item: entry.item,
+        quantity: entry.quantity,
+        selectedVariation: entry.selectedVariation,
+        addOns: entry.addOns,
+        customAddOns: entry.customAddOns,
+        comment: entry.comment,
+      }))
+
+      try {
+        const res = await fetch("/api/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "updateOrder",
+            orderId,
+            order: {
+              items: orderItems,
+              total: totalOverride ?? basketTotal,
+              orderType,
+              customer,
+              paymentStatus,
+              paymentMethod,
+              orderComment,
+            },
+          }),
+        })
+
+        if (!res.ok) {
+          const message = await readApiError(res, "Failed to update order")
+          throw new Error(message)
+        }
+
+        const data = await parseJsonSafe<{ orders: ApiOrder[] }>(res)
+        if (data) {
+          const hydrated = data.orders.map(hydrateOrder)
+          setOrders(hydrated)
+          setBasket([])
+          return hydrated.find((order) => order.id === orderId) ?? null
+        }
+
+        await refreshOrders()
+        setBasket([])
+        return null
+      } catch (error) {
+        console.error("Update order failed:", error)
         return null
       }
     },
@@ -415,7 +496,9 @@ export function useEposStore() {
     removeFromBasket,
     incrementBasketItem,
     clearBasket,
+    loadOrderIntoBasket,
     placeOrder,
+    updateOrder,
     updateOrderStatus,
     updateBasketItemComment,
     toggleBasketItemAddOn,

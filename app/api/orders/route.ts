@@ -136,6 +136,109 @@ export async function POST(req: Request) {
           body: orderItems,
         })
       }
+    } else if (body.action === "updateOrder") {
+      if (
+        !body.orderId ||
+        !body.order ||
+        !Array.isArray(body.order.items) ||
+        body.order.items.length === 0
+      ) {
+        return NextResponse.json(
+          { error: "An edited order must contain at least one item" },
+          { status: 400 }
+        )
+      }
+
+      const existingOrders = await supabaseRest<
+        Array<{
+          status: string
+          total: number
+          order_type: string
+          customer: Record<string, unknown>
+          payment_status: string
+          payment_method: string | null
+          order_comment: string | null
+        }>
+      >("orders", {
+        query: {
+          select:
+            "status,total,order_type,customer,payment_status,payment_method,order_comment",
+          id: `eq.${body.orderId}`,
+          limit: 1,
+        },
+      })
+
+      const existingOrder = existingOrders[0]
+      if (!existingOrder) {
+        return NextResponse.json({ error: "Order not found" }, { status: 404 })
+      }
+      if (["collected", "delivered", "cancelled"].includes(existingOrder.status)) {
+        return NextResponse.json(
+          { error: "Completed or cancelled orders cannot be edited" },
+          { status: 409 }
+        )
+      }
+
+      const oldItems = await supabaseRest<Array<{ id: string }>>("order_items", {
+        query: { select: "id", order_id: `eq.${body.orderId}` },
+      })
+      const headerUpdates = {
+        total: body.order.total,
+        order_type: body.order.orderType,
+        customer: body.order.customer || {},
+        payment_status: body.order.paymentStatus,
+        payment_method: body.order.paymentMethod,
+        order_comment: body.order.orderComment || null,
+      }
+
+      await supabaseRest(`orders?id=eq.${encodeURIComponent(body.orderId)}`, {
+        method: "PATCH",
+        body: headerUpdates,
+      })
+
+      let insertedItems: Array<{ id: string }> = []
+      try {
+        insertedItems = await supabaseRest<Array<{ id: string }>>("order_items", {
+          method: "POST",
+          prefer: "return=representation",
+          body: body.order.items.map((item: any) => ({
+            order_id: body.orderId,
+            item_snapshot: item.item,
+            quantity: item.quantity,
+            selected_variation: item.selectedVariation || null,
+            add_ons: item.addOns || [],
+            custom_add_ons: item.customAddOns || [],
+            comment: item.comment || null,
+          })),
+        })
+
+        if (oldItems.length > 0) {
+          await supabaseRest(
+            `order_items?id=in.(${oldItems.map((item) => item.id).join(",")})`,
+            { method: "DELETE" }
+          )
+        }
+      } catch (error) {
+        // Restore the original state if replacing the item rows fails.
+        if (insertedItems.length > 0) {
+          await supabaseRest(
+            `order_items?id=in.(${insertedItems.map((item) => item.id).join(",")})`,
+            { method: "DELETE" }
+          ).catch(() => undefined)
+        }
+        await supabaseRest(`orders?id=eq.${encodeURIComponent(body.orderId)}`, {
+          method: "PATCH",
+          body: {
+            total: existingOrder.total,
+            order_type: existingOrder.order_type,
+            customer: existingOrder.customer,
+            payment_status: existingOrder.payment_status,
+            payment_method: existingOrder.payment_method,
+            order_comment: existingOrder.order_comment,
+          },
+        }).catch(() => undefined)
+        throw error
+      }
     } else if (body.action === "updateStatus") {
       if (!body.orderId || !body.status) {
         return NextResponse.json({ error: "Invalid updateStatus payload" }, { status: 400 })
