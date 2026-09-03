@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import {
   Plus,
   Trash2,
@@ -55,7 +55,11 @@ export function MenuEditor({ menuStore }: MenuEditorProps) {
   )
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
   const [draggedCategoryId, setDraggedCategoryId] = useState<string | null>(null)
-  const [dragOverCategoryId, setDragOverCategoryId] = useState<string | null>(null)
+  const [dropCategoryIndex, setDropCategoryIndex] = useState<number | null>(null)
+  const [dragPointer, setDragPointer] = useState<{ x: number; y: number } | null>(
+    null
+  )
+  const categoryListRef = useRef<HTMLDivElement>(null)
 
   // New category form
   const [showNewCat, setShowNewCat] = useState(false)
@@ -95,23 +99,61 @@ export function MenuEditor({ menuStore }: MenuEditorProps) {
     setSelectedCatId(id)
   }
 
-  const dropCategory = (targetCategoryId: string) => {
-    if (!draggedCategoryId || draggedCategoryId === targetCategoryId) {
+  const finishCategoryDrag = () => {
+    if (!draggedCategoryId || dropCategoryIndex === null) {
       setDraggedCategoryId(null)
-      setDragOverCategoryId(null)
+      setDropCategoryIndex(null)
+      setDragPointer(null)
       return
     }
-
     const orderedIds = categories.map((category) => category.id)
     const sourceIndex = orderedIds.indexOf(draggedCategoryId)
-    const targetIndex = orderedIds.indexOf(targetCategoryId)
-    if (sourceIndex === -1 || targetIndex === -1) return
-
+    if (sourceIndex === -1) return
     const [movedId] = orderedIds.splice(sourceIndex, 1)
-    orderedIds.splice(targetIndex, 0, movedId)
-    reorderCategories(orderedIds)
+    const adjustedDropIndex =
+      sourceIndex < dropCategoryIndex
+        ? dropCategoryIndex - 1
+        : dropCategoryIndex
+    orderedIds.splice(adjustedDropIndex, 0, movedId)
+    if (adjustedDropIndex !== sourceIndex) {
+      reorderCategories(orderedIds)
+    }
     setDraggedCategoryId(null)
-    setDragOverCategoryId(null)
+    setDropCategoryIndex(null)
+    setDragPointer(null)
+  }
+
+  const updateCategoryDropPosition = (
+    event: React.PointerEvent<HTMLButtonElement>
+  ) => {
+    if (!draggedCategoryId) return
+    event.preventDefault()
+    setDragPointer({ x: event.clientX, y: event.clientY })
+
+    const categoryList = categoryListRef.current
+    if (categoryList) {
+      const listBounds = categoryList.getBoundingClientRect()
+      const scrollEdge = 48
+      if (event.clientY < listBounds.top + scrollEdge) {
+        categoryList.scrollBy({ top: -14 })
+      } else if (event.clientY > listBounds.bottom - scrollEdge) {
+        categoryList.scrollBy({ top: 14 })
+      }
+    }
+
+    const hoveredElement = document.elementFromPoint(
+      event.clientX,
+      event.clientY
+    )
+    const categoryRow = hoveredElement?.closest<HTMLElement>(
+      "[data-category-index]"
+    )
+    if (!categoryRow) return
+
+    const hoveredIndex = Number(categoryRow.dataset.categoryIndex)
+    const bounds = categoryRow.getBoundingClientRect()
+    const insertAfter = event.clientY >= bounds.top + bounds.height / 2
+    setDropCategoryIndex(hoveredIndex + (insertAfter ? 1 : 0))
   }
 
   const handleAddItem = () => {
@@ -223,89 +265,119 @@ export function MenuEditor({ menuStore }: MenuEditorProps) {
           </div>
         )}
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-2">
+        <div
+          ref={categoryListRef}
+          className="min-h-0 flex-1 overflow-y-auto p-2"
+        >
           <div className="flex flex-col gap-1">
-            {categories.map((cat) => (
-              <div
-                key={cat.id}
-                onDragOver={(event) => {
-                  event.preventDefault()
-                  event.dataTransfer.dropEffect = "move"
-                  if (draggedCategoryId && dragOverCategoryId !== cat.id) {
-                    setDragOverCategoryId(cat.id)
-                  }
-                }}
-                onDrop={(event) => {
-                  event.preventDefault()
-                  dropCategory(cat.id)
-                }}
-                className={cn(
-                  "group flex items-center gap-2 rounded-lg px-2.5 py-2.5 text-left transition-all cursor-pointer",
-                  selectedCatId === cat.id
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-secondary hover:text-foreground",
-                  draggedCategoryId === cat.id && "opacity-45",
-                  dragOverCategoryId === cat.id &&
-                    draggedCategoryId !== cat.id &&
-                    "ring-2 ring-primary ring-inset bg-primary/10"
+            {categories.map((cat, index) => (
+              <div key={cat.id} className="relative">
+                {draggedCategoryId && dropCategoryIndex === index && (
+                  <div className="pointer-events-none absolute -top-[3px] left-2 right-2 z-20 flex items-center">
+                    <span className="h-2 w-2 rounded-full bg-primary shadow-sm" />
+                    <span className="h-0.5 flex-1 rounded-full bg-primary shadow-sm" />
+                  </div>
                 )}
-                onClick={() => {
-                  setSelectedCatId(cat.id)
-                  setSelectedItemId(null)
-                }}
-              >
-                <button
-                  type="button"
-                  draggable
-                  onClick={(event) => event.stopPropagation()}
-                  onDragStart={(event) => {
-                    setDraggedCategoryId(cat.id)
-                    event.dataTransfer.effectAllowed = "move"
-                    event.dataTransfer.setData("text/plain", cat.id)
-                  }}
-                  onDragEnd={() => {
-                    setDraggedCategoryId(null)
-                    setDragOverCategoryId(null)
-                  }}
-                  aria-label={`Drag ${cat.name} to reorder`}
-                  title="Drag to reorder"
+                <div
+                  data-category-index={index}
                   className={cn(
-                    "flex h-7 w-6 shrink-0 cursor-grab items-center justify-center rounded active:cursor-grabbing",
+                    "group flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2.5 text-left transition-all",
                     selectedCatId === cat.id
-                      ? "text-primary-foreground/70 hover:bg-primary-foreground/10 hover:text-primary-foreground"
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                    draggedCategoryId === cat.id && "opacity-40"
                   )}
-                >
-                  <GripVertical className="h-4 w-4" />
-                </button>
-                <div className={cn("h-2 w-2 shrink-0 rounded-full", cat.color)} />
-                <span className="min-w-0 flex-1 truncate text-sm font-semibold">
-                  {cat.name}
-                </span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    deleteCategory(cat.id)
-                    if (selectedCatId === cat.id) {
-                      setSelectedCatId(categories[0]?.id ?? "")
-                      setSelectedItemId(null)
-                    }
+                  onClick={() => {
+                    setSelectedCatId(cat.id)
+                    setSelectedItemId(null)
                   }}
-                  aria-label={`Delete ${cat.name}`}
-                  className={cn(
-                    "flex h-7 w-7 shrink-0 items-center justify-center rounded transition-colors",
-                    selectedCatId === cat.id
-                      ? "text-primary-foreground/70 hover:bg-primary-foreground/10 hover:text-primary-foreground"
-                      : "text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                  )}
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                  <button
+                    type="button"
+                    onClick={(event) => event.stopPropagation()}
+                    onPointerDown={(event) => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      event.currentTarget.setPointerCapture(event.pointerId)
+                      setDraggedCategoryId(cat.id)
+                      setDropCategoryIndex(index)
+                      setDragPointer({ x: event.clientX, y: event.clientY })
+                    }}
+                    onPointerMove={updateCategoryDropPosition}
+                    onPointerUp={(event) => {
+                      event.preventDefault()
+                      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                        event.currentTarget.releasePointerCapture(event.pointerId)
+                      }
+                      finishCategoryDrag()
+                    }}
+                    onPointerCancel={() => {
+                      setDraggedCategoryId(null)
+                      setDropCategoryIndex(null)
+                      setDragPointer(null)
+                    }}
+                    aria-label={`Drag ${cat.name} to reorder`}
+                    aria-pressed={draggedCategoryId === cat.id}
+                    title="Drag to reorder"
+                    className={cn(
+                      "flex h-7 w-6 shrink-0 touch-none select-none items-center justify-center rounded cursor-grab active:cursor-grabbing",
+                      selectedCatId === cat.id
+                        ? "text-primary-foreground/70 hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    )}
+                  >
+                    <GripVertical className="h-4 w-4" />
+                  </button>
+                  <div className={cn("h-2 w-2 shrink-0 rounded-full", cat.color)} />
+                  <span className="min-w-0 flex-1 truncate text-sm font-semibold">
+                    {cat.name}
+                  </span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      deleteCategory(cat.id)
+                      if (selectedCatId === cat.id) {
+                        setSelectedCatId(categories[0]?.id ?? "")
+                        setSelectedItemId(null)
+                      }
+                    }}
+                    aria-label={`Delete ${cat.name}`}
+                    className={cn(
+                      "flex h-7 w-7 shrink-0 items-center justify-center rounded transition-colors",
+                      selectedCatId === cat.id
+                        ? "text-primary-foreground/70 hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                        : "text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                    )}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
             ))}
+            {draggedCategoryId && dropCategoryIndex === categories.length && (
+              <div className="pointer-events-none relative -mt-0.5 flex items-center px-2">
+                <span className="h-2 w-2 rounded-full bg-primary shadow-sm" />
+                <span className="h-0.5 flex-1 rounded-full bg-primary shadow-sm" />
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {draggedCategoryId && dragPointer && (
+        <div
+          className="pointer-events-none fixed z-50 flex max-w-64 items-center gap-2 rounded-lg border border-primary/40 bg-card px-3 py-2 text-sm font-semibold text-card-foreground shadow-xl"
+          style={{
+            left: dragPointer.x + 14,
+            top: dragPointer.y + 14,
+          }}
+        >
+          <GripVertical className="h-4 w-4 text-primary" />
+          <span className="truncate">
+            {categories.find((category) => category.id === draggedCategoryId)?.name}
+          </span>
+        </div>
+      )}
 
       {/* Column 2 - Items List */}
       <div className="flex w-72 shrink-0 flex-col rounded-xl border border-border bg-card overflow-hidden">
