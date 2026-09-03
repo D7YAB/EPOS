@@ -23,6 +23,7 @@ export type Category = {
   id: string
   name: string
   color: string
+  sortOrder?: number
 }
 
 export const defaultCategories: Category[] = [

@@ -11,6 +11,8 @@ import {
   DollarSign,
   Layers,
   Package,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react"
 import type { MenuStore } from "@/hooks/use-menu-store"
 import type { MenuItem, Category, ProductVariation, ProductAddOn } from "@/lib/menu-data"
@@ -39,6 +41,7 @@ export function MenuEditor({ menuStore }: MenuEditorProps) {
     addCategory,
     updateCategory,
     deleteCategory,
+    reorderCategories,
     addItem,
     updateItem,
     deleteItem,
@@ -89,6 +92,17 @@ export function MenuEditor({ menuStore }: MenuEditorProps) {
     setNewCatName("")
     setShowNewCat(false)
     setSelectedCatId(id)
+  }
+
+  const moveCategory = (index: number, direction: -1 | 1) => {
+    const nextIndex = index + direction
+    if (nextIndex < 0 || nextIndex >= categories.length) return
+    const orderedIds = categories.map((category) => category.id)
+    ;[orderedIds[index], orderedIds[nextIndex]] = [
+      orderedIds[nextIndex],
+      orderedIds[index],
+    ]
+    reorderCategories(orderedIds)
   }
 
   const handleAddItem = () => {
@@ -197,7 +211,7 @@ export function MenuEditor({ menuStore }: MenuEditorProps) {
 
         <div className="min-h-0 flex-1 overflow-y-auto p-2">
           <div className="flex flex-col gap-1">
-            {categories.map((cat) => (
+            {categories.map((cat, index) => (
               <div
                 key={cat.id}
                 className={cn(
@@ -215,24 +229,59 @@ export function MenuEditor({ menuStore }: MenuEditorProps) {
                 <span className="flex-1 text-sm font-semibold truncate">
                   {cat.name}
                 </span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    deleteCategory(cat.id)
-                    if (selectedCatId === cat.id) {
-                      setSelectedCatId(categories[0]?.id ?? "")
-                      setSelectedItemId(null)
-                    }
-                  }}
-                  className={cn(
-                    "hidden h-5 w-5 items-center justify-center rounded group-hover:flex",
-                    selectedCatId === cat.id
-                      ? "text-primary-foreground/70 hover:text-primary-foreground"
-                      : "text-muted-foreground hover:text-destructive"
-                  )}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </button>
+                <div className="flex shrink-0 items-center gap-0.5">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      moveCategory(index, -1)
+                    }}
+                    disabled={index === 0}
+                    aria-label={`Move ${cat.name} up`}
+                    className={cn(
+                      "flex h-5 w-5 items-center justify-center rounded transition-colors disabled:cursor-not-allowed disabled:opacity-25",
+                      selectedCatId === cat.id
+                        ? "text-primary-foreground/70 hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    )}
+                  >
+                    <ArrowUp className="h-3 w-3" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      moveCategory(index, 1)
+                    }}
+                    disabled={index === categories.length - 1}
+                    aria-label={`Move ${cat.name} down`}
+                    className={cn(
+                      "flex h-5 w-5 items-center justify-center rounded transition-colors disabled:cursor-not-allowed disabled:opacity-25",
+                      selectedCatId === cat.id
+                        ? "text-primary-foreground/70 hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    )}
+                  >
+                    <ArrowDown className="h-3 w-3" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      deleteCategory(cat.id)
+                      if (selectedCatId === cat.id) {
+                        setSelectedCatId(categories[0]?.id ?? "")
+                        setSelectedItemId(null)
+                      }
+                    }}
+                    aria-label={`Delete ${cat.name}`}
+                    className={cn(
+                      "flex h-5 w-5 items-center justify-center rounded",
+                      selectedCatId === cat.id
+                        ? "text-primary-foreground/70 hover:text-primary-foreground"
+                        : "text-muted-foreground hover:text-destructive"
+                    )}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>

@@ -4,6 +4,7 @@ create table if not exists public.categories (
   id text primary key,
   name text not null,
   color text not null,
+  sort_order integer not null default 0,
   created_at timestamptz not null default now()
 );
 

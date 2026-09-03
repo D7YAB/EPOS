@@ -7,6 +7,7 @@ type DbCategory = {
   id: string
   name: string
   color: string
+  sort_order: number
 }
 
 type DbVariation = {
@@ -35,7 +36,7 @@ type DbMenuItem = {
 async function getMenuPayload() {
   const [categories, items] = await Promise.all([
     supabaseRest<DbCategory[]>("categories", {
-      query: { select: "*", order: "name.asc" },
+      query: { select: "id,name,color,sort_order", order: "sort_order.asc,name.asc" },
     }),
     supabaseRest<DbMenuItem[]>("menu_items", {
       query: {
@@ -46,7 +47,12 @@ async function getMenuPayload() {
   ])
 
   return {
-    categories,
+    categories: categories.map((category) => ({
+      id: category.id,
+      name: category.name,
+      color: category.color,
+      sortOrder: Number(category.sort_order),
+    })),
     menuItems: items.map((m) => ({
       id: m.id,
       name: m.name,
@@ -96,16 +102,37 @@ export async function POST(req: Request) {
 
     switch (body.action) {
       case "addCategory": {
+        const lastCategories = await supabaseRest<Array<{ sort_order: number }>>(
+          "categories",
+          {
+            query: {
+              select: "sort_order",
+              order: "sort_order.desc",
+              limit: 1,
+            },
+          }
+        )
         await supabaseRest("categories", {
           method: "POST",
-          body: { id: body.category.id, name: body.category.name, color: body.category.color },
+          body: {
+            id: body.category.id,
+            name: body.category.name,
+            color: body.category.color,
+            sort_order: Number(lastCategories[0]?.sort_order ?? -1) + 1,
+          },
         })
         break
       }
       case "updateCategory": {
+        const updates: Record<string, unknown> = {}
+        if (body.updates.name !== undefined) updates.name = body.updates.name
+        if (body.updates.color !== undefined) updates.color = body.updates.color
+        if (body.updates.sortOrder !== undefined) {
+          updates.sort_order = body.updates.sortOrder
+        }
         await supabaseRest(`categories?id=eq.${encodeURIComponent(body.id)}`, {
           method: "PATCH",
-          body: body.updates,
+          body: updates,
         })
         break
       }
@@ -113,6 +140,45 @@ export async function POST(req: Request) {
         await supabaseRest(`categories?id=eq.${encodeURIComponent(body.id)}`, {
           method: "DELETE",
         })
+        break
+      }
+      case "reorderCategories": {
+        if (
+          !Array.isArray(body.orderedIds) ||
+          body.orderedIds.some((id: unknown) => typeof id !== "string")
+        ) {
+          return NextResponse.json(
+            { error: "Invalid category order" },
+            { status: 400 }
+          )
+        }
+
+        const existingCategories = await supabaseRest<Array<{ id: string }>>(
+          "categories",
+          { query: { select: "id" } }
+        )
+        const existingIds = new Set(existingCategories.map((category) => category.id))
+        const orderedIds = body.orderedIds as string[]
+        const requestedIds = new Set(orderedIds)
+        if (
+          orderedIds.length !== existingIds.size ||
+          requestedIds.size !== existingIds.size ||
+          orderedIds.some((id) => !existingIds.has(id))
+        ) {
+          return NextResponse.json(
+            { error: "Category order is out of date; refresh and try again" },
+            { status: 409 }
+          )
+        }
+
+        await Promise.all(
+          orderedIds.map((id, index) =>
+            supabaseRest(`categories?id=eq.${encodeURIComponent(id)}`, {
+              method: "PATCH",
+              body: { sort_order: index },
+            })
+          )
+        )
         break
       }
       case "addItem": {

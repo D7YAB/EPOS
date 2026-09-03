@@ -111,6 +111,13 @@ export function useMenuStore() {
     [runAction]
   )
 
+  const reorderCategories = useCallback(
+    (orderedIds: string[]) => {
+      void runAction({ action: "reorderCategories", orderedIds })
+    },
+    [runAction]
+  )
+
   const addItem = useCallback(
     (item: MenuItem) => {
       void runAction({ action: "addItem", item })
@@ -167,6 +174,7 @@ export function useMenuStore() {
     addCategory,
     updateCategory,
     deleteCategory,
+    reorderCategories,
     addItem,
     updateItem,
     deleteItem,
