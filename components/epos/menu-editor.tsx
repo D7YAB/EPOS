@@ -11,8 +11,7 @@ import {
   DollarSign,
   Layers,
   Package,
-  ArrowUp,
-  ArrowDown,
+  GripVertical,
 } from "lucide-react"
 import type { MenuStore } from "@/hooks/use-menu-store"
 import type { MenuItem, Category, ProductVariation, ProductAddOn } from "@/lib/menu-data"
@@ -55,6 +54,8 @@ export function MenuEditor({ menuStore }: MenuEditorProps) {
     categories[0]?.id ?? ""
   )
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
+  const [draggedCategoryId, setDraggedCategoryId] = useState<string | null>(null)
+  const [dragOverCategoryId, setDragOverCategoryId] = useState<string | null>(null)
 
   // New category form
   const [showNewCat, setShowNewCat] = useState(false)
@@ -94,15 +95,23 @@ export function MenuEditor({ menuStore }: MenuEditorProps) {
     setSelectedCatId(id)
   }
 
-  const moveCategory = (index: number, direction: -1 | 1) => {
-    const nextIndex = index + direction
-    if (nextIndex < 0 || nextIndex >= categories.length) return
+  const dropCategory = (targetCategoryId: string) => {
+    if (!draggedCategoryId || draggedCategoryId === targetCategoryId) {
+      setDraggedCategoryId(null)
+      setDragOverCategoryId(null)
+      return
+    }
+
     const orderedIds = categories.map((category) => category.id)
-    ;[orderedIds[index], orderedIds[nextIndex]] = [
-      orderedIds[nextIndex],
-      orderedIds[index],
-    ]
+    const sourceIndex = orderedIds.indexOf(draggedCategoryId)
+    const targetIndex = orderedIds.indexOf(targetCategoryId)
+    if (sourceIndex === -1 || targetIndex === -1) return
+
+    const [movedId] = orderedIds.splice(sourceIndex, 1)
+    orderedIds.splice(targetIndex, 0, movedId)
     reorderCategories(orderedIds)
+    setDraggedCategoryId(null)
+    setDragOverCategoryId(null)
   }
 
   const handleAddItem = () => {
@@ -160,11 +169,16 @@ export function MenuEditor({ menuStore }: MenuEditorProps) {
   return (
     <div className="flex h-full min-h-0 gap-4 p-4 lg:p-6">
       {/* Column 1 - Categories */}
-      <div className="flex w-48 shrink-0 flex-col rounded-xl border border-border bg-card overflow-hidden">
+      <div className="flex w-72 shrink-0 flex-col rounded-xl border border-border bg-card overflow-hidden">
         <div className="shrink-0 flex items-center justify-between border-b border-border px-4 py-3">
-          <h2 className="text-sm font-bold uppercase tracking-wide text-card-foreground">
-            Categories
-          </h2>
+          <div>
+            <h2 className="text-sm font-bold uppercase tracking-wide text-card-foreground">
+              Categories
+            </h2>
+            <p className="mt-0.5 text-[10px] font-medium text-muted-foreground">
+              Drag the handle to reorder
+            </p>
+          </div>
           <button
             onClick={() => setShowNewCat(!showNewCat)}
             className="flex h-7 w-7 items-center justify-center rounded-md text-primary hover:bg-primary/10 transition-colors"
@@ -211,77 +225,82 @@ export function MenuEditor({ menuStore }: MenuEditorProps) {
 
         <div className="min-h-0 flex-1 overflow-y-auto p-2">
           <div className="flex flex-col gap-1">
-            {categories.map((cat, index) => (
+            {categories.map((cat) => (
               <div
                 key={cat.id}
+                onDragOver={(event) => {
+                  event.preventDefault()
+                  event.dataTransfer.dropEffect = "move"
+                  if (draggedCategoryId && dragOverCategoryId !== cat.id) {
+                    setDragOverCategoryId(cat.id)
+                  }
+                }}
+                onDrop={(event) => {
+                  event.preventDefault()
+                  dropCategory(cat.id)
+                }}
                 className={cn(
-                  "group flex items-center gap-2 rounded-lg px-3 py-2.5 text-left transition-all cursor-pointer",
+                  "group flex items-center gap-2 rounded-lg px-2.5 py-2.5 text-left transition-all cursor-pointer",
                   selectedCatId === cat.id
                     ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                  draggedCategoryId === cat.id && "opacity-45",
+                  dragOverCategoryId === cat.id &&
+                    draggedCategoryId !== cat.id &&
+                    "ring-2 ring-primary ring-inset bg-primary/10"
                 )}
                 onClick={() => {
                   setSelectedCatId(cat.id)
                   setSelectedItemId(null)
                 }}
               >
+                <button
+                  type="button"
+                  draggable
+                  onClick={(event) => event.stopPropagation()}
+                  onDragStart={(event) => {
+                    setDraggedCategoryId(cat.id)
+                    event.dataTransfer.effectAllowed = "move"
+                    event.dataTransfer.setData("text/plain", cat.id)
+                  }}
+                  onDragEnd={() => {
+                    setDraggedCategoryId(null)
+                    setDragOverCategoryId(null)
+                  }}
+                  aria-label={`Drag ${cat.name} to reorder`}
+                  title="Drag to reorder"
+                  className={cn(
+                    "flex h-7 w-6 shrink-0 cursor-grab items-center justify-center rounded active:cursor-grabbing",
+                    selectedCatId === cat.id
+                      ? "text-primary-foreground/70 hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  )}
+                >
+                  <GripVertical className="h-4 w-4" />
+                </button>
                 <div className={cn("h-2 w-2 shrink-0 rounded-full", cat.color)} />
-                <span className="flex-1 text-sm font-semibold truncate">
+                <span className="min-w-0 flex-1 truncate text-sm font-semibold">
                   {cat.name}
                 </span>
-                <div className="flex shrink-0 items-center gap-0.5">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      moveCategory(index, -1)
-                    }}
-                    disabled={index === 0}
-                    aria-label={`Move ${cat.name} up`}
-                    className={cn(
-                      "flex h-5 w-5 items-center justify-center rounded transition-colors disabled:cursor-not-allowed disabled:opacity-25",
-                      selectedCatId === cat.id
-                        ? "text-primary-foreground/70 hover:bg-primary-foreground/10 hover:text-primary-foreground"
-                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                    )}
-                  >
-                    <ArrowUp className="h-3 w-3" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      moveCategory(index, 1)
-                    }}
-                    disabled={index === categories.length - 1}
-                    aria-label={`Move ${cat.name} down`}
-                    className={cn(
-                      "flex h-5 w-5 items-center justify-center rounded transition-colors disabled:cursor-not-allowed disabled:opacity-25",
-                      selectedCatId === cat.id
-                        ? "text-primary-foreground/70 hover:bg-primary-foreground/10 hover:text-primary-foreground"
-                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                    )}
-                  >
-                    <ArrowDown className="h-3 w-3" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      deleteCategory(cat.id)
-                      if (selectedCatId === cat.id) {
-                        setSelectedCatId(categories[0]?.id ?? "")
-                        setSelectedItemId(null)
-                      }
-                    }}
-                    aria-label={`Delete ${cat.name}`}
-                    className={cn(
-                      "flex h-5 w-5 items-center justify-center rounded",
-                      selectedCatId === cat.id
-                        ? "text-primary-foreground/70 hover:text-primary-foreground"
-                        : "text-muted-foreground hover:text-destructive"
-                    )}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
-                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    deleteCategory(cat.id)
+                    if (selectedCatId === cat.id) {
+                      setSelectedCatId(categories[0]?.id ?? "")
+                      setSelectedItemId(null)
+                    }
+                  }}
+                  aria-label={`Delete ${cat.name}`}
+                  className={cn(
+                    "flex h-7 w-7 shrink-0 items-center justify-center rounded transition-colors",
+                    selectedCatId === cat.id
+                      ? "text-primary-foreground/70 hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                      : "text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                  )}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
               </div>
             ))}
           </div>
