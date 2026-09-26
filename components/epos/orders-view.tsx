@@ -61,6 +61,20 @@ const orderTypeConfig: Record<
   instore: { label: "In-Store", icon: UtensilsCrossed },
 }
 
+function dailyOrderNumbers(orders: Order[]) {
+  const numbers = new Map<string, number>()
+  ;[...orders]
+    .sort(
+      (a, b) =>
+        a.createdAt.getTime() - b.createdAt.getTime() ||
+        a.id.localeCompare(b.id)
+    )
+    .forEach((order, index) => {
+      numbers.set(order.id, index + 1)
+    })
+  return numbers
+}
+
 function formatTime(date: Date) {
   return date.toLocaleTimeString([], {
     hour: "numeric",
@@ -83,10 +97,12 @@ function calcItemsSubtotal(order: Order): number {
 
 function OrderCard({
   order,
+  displayNumber,
   isSelected,
   onSelect,
 }: {
   order: Order
+  displayNumber: number
   isSelected: boolean
   onSelect: () => void
 }) {
@@ -118,7 +134,7 @@ function OrderCard({
     >
       <div className="flex items-center justify-between">
         <span className="text-base font-bold text-card-foreground">
-          #{String(order.orderNumber).padStart(3, "0")}
+          #{String(displayNumber).padStart(3, "0")}
         </span>
         <span className="text-sm font-bold text-card-foreground">
           {"£"}{order.total.toFixed(2)}
@@ -291,6 +307,8 @@ export function OrdersList({
     )
   }
 
+  const numbers = dailyOrderNumbers(orders)
+
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card">
       <div className="shrink-0 flex items-center justify-between border-b border-border px-4 py-3">
@@ -311,6 +329,7 @@ export function OrdersList({
             <OrderCard
               key={order.id}
               order={order}
+              displayNumber={numbers.get(order.id) ?? 1}
               isSelected={order.id === selectedOrderId}
               onSelect={() => onSelectOrder(order.id)}
             />
