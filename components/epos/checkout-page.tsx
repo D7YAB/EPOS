@@ -294,11 +294,36 @@ export function CheckoutPage({
     if (!latest) return;
 
     if (latest.customer.name) setName(latest.customer.name);
-    if (latest.customer.addressLine1)
-      setAddressLine1(latest.customer.addressLine1);
-    setAddressLine2(latest.customer.addressLine2 ?? "");
-    setCity(latest.customer.city ?? "");
-    setPostcode(latest.customer.postcode ?? "");
+    const line1 = latest.customer.addressLine1?.trim() ?? "";
+    const line2 = latest.customer.addressLine2 ?? "";
+    const savedCity = latest.customer.city ?? "";
+    const savedPostcode = latest.customer.postcode ?? "";
+    setAddressLine1(line1);
+    setAddressLine2(line2);
+    setCity(savedCity);
+    setPostcode(savedPostcode);
+    setAddressLookupError("");
+    setShowAddressPicker(false);
+    if (line1) {
+      const savedId = "saved-address";
+      setAddresses([
+        {
+          id: savedId,
+          line1,
+          line2: line2 || null,
+          line3: null,
+          city: savedCity || null,
+          postcode: savedPostcode,
+          label: [line1, line2, savedCity, savedPostcode]
+            .filter(Boolean)
+            .join(", "),
+        },
+      ]);
+      setSelectedAddressId(savedId);
+    } else {
+      setAddresses([]);
+      setSelectedAddressId("");
+    }
     setLastAutofilledPhone(normalized);
   };
 
