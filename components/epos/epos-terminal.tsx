@@ -165,10 +165,10 @@ export function EposTerminal() {
         ]
         const addOnMarkup =
           addOnLines.length > 0
-            ? `<div style="margin-top:4px;font-size:11px;color:#555;">${addOnLines.join("<br/>")}</div>`
+            ? `<div style="margin-top:4px;font-size:14px;color:#555;">${addOnLines.join("<br/>")}</div>`
             : ""
         const commentMarkup = entry.comment
-          ? `<div style="margin-top:4px;font-size:11px;color:#555;"><em>Note: ${entry.comment}</em></div>`
+          ? `<div style="margin-top:4px;font-size:14px;color:#555;"><em>Note: ${entry.comment}</em></div>`
           : ""
         return `<tr><td>${entry.quantity} x ${entry.item.name}${variation}${addOnMarkup}${commentMarkup}</td><td style="text-align:right">${currency(total)}</td></tr>`
       })
@@ -191,7 +191,6 @@ export function EposTerminal() {
         <body>
         <div style="display:flex; justify-content:space-between; align-items:center;">
           <h1>Diyab Ocean</h1>
-          <p>Order #${String(order.orderNumber).padStart(3, "0")}</p>
         </div>
           <p>${createdAt}</p>
           <h2 style="margin:6px 0; text-align:center;">${order.orderType}</h2>
