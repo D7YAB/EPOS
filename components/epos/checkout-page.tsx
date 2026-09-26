@@ -180,7 +180,7 @@ export function CheckoutPage({
 
   const canSubmit = (() => {
     if (paymentStatus === "paid" && !paymentMethod) return false;
-    if (orderType === "instore") return name.trim().length > 0;
+    if (orderType === "instore") return true;
     if (orderType === "collection")
       return name.trim().length > 0 && phone.trim().length > 0;
     if (orderType === "delivery")
@@ -256,7 +256,7 @@ export function CheckoutPage({
     setIsSubmitting(true);
     const customer: CustomerDetails = {};
     if (orderType === "instore") {
-      customer.name = name.trim();
+      customer.name = name.trim() || "waiting";
     } else if (orderType === "collection") {
       customer.name = name.trim();
       customer.phone = phone.trim();
@@ -415,7 +415,7 @@ export function CheckoutPage({
               <label className="flex items-center gap-2 text-sm font-semibold text-card-foreground">
                 <User className="h-4 w-4 text-muted-foreground" />
                 Name
-                {orderType === "delivery" && (
+                {(orderType === "delivery" || orderType === "instore") && (
                   <span className="text-xs font-normal text-muted-foreground">
                     (optional)
                   </span>
