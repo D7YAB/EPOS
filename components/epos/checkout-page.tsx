@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import {
   Truck,
   ShoppingBag,
@@ -62,7 +62,7 @@ type CheckoutPageProps = {
     paymentMethod: PaymentMethod,
     orderComment?: string,
     totalOverride?: number,
-  ) => Promise<void> | void;
+  ) => Promise<boolean> | boolean;
   onBack: () => void;
 };
 
@@ -175,6 +175,9 @@ export function CheckoutPage({
     orderType === "delivery" ? (matchedDeliveryCharge?.charge ?? 0) : 0;
   const finalTotal = basketTotal + deliveryCharge;
 
+  const submitLock = useRef(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const canSubmit = (() => {
     if (paymentStatus === "paid" && !paymentMethod) return false;
     if (orderType === "instore") return name.trim().length > 0;
@@ -248,7 +251,9 @@ export function CheckoutPage({
   );
 
   const handleSubmit = async () => {
-    if (!canSubmit) return;
+    if (!canSubmit || submitLock.current) return;
+    submitLock.current = true;
+    setIsSubmitting(true);
     const customer: CustomerDetails = {};
     if (orderType === "instore") {
       customer.name = name.trim();
@@ -263,7 +268,7 @@ export function CheckoutPage({
       customer.city = city.trim();
       customer.postcode = postcode.trim();
     }
-    await onPlaceOrder(
+    const saved = await onPlaceOrder(
       orderType,
       customer,
       paymentStatus,
@@ -271,6 +276,10 @@ export function CheckoutPage({
       orderComment.trim() || undefined,
       finalTotal,
     );
+    if (!saved) {
+      submitLock.current = false;
+      setIsSubmitting(false);
+    }
   };
 
   const maybeAutofillFromPhone = (phoneValue: string) => {
@@ -729,13 +738,18 @@ export function CheckoutPage({
         {/* Confirm button */}
         <div className="sticky bottom-0 z-20 bg-background pt-3">
           <button
+            type="button"
             onClick={handleSubmit}
-            disabled={!canSubmit}
+            disabled={!canSubmit || isSubmitting}
             className="w-full rounded-xl bg-primary py-4 text-base font-bold uppercase tracking-wider text-primary-foreground transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {editingOrder
-              ? `Save Order #${String(editingOrderNumber ?? editingOrder.orderNumber).padStart(3, "0")} - £${finalTotal.toFixed(2)}`
-              : `Confirm & Place Order - £${finalTotal.toFixed(2)}`}
+            {isSubmitting
+              ? editingOrder
+                ? "Saving order..."
+                : "Placing order..."
+              : editingOrder
+                ? `Save Order #${String(editingOrderNumber ?? editingOrder.orderNumber).padStart(3, "0")} - £${finalTotal.toFixed(2)}`
+                : `Confirm & Place Order - £${finalTotal.toFixed(2)}`}
           </button>
         </div>
       </div>

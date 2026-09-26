@@ -237,7 +237,7 @@ export function EposTerminal() {
     paymentMethod: PaymentMethod,
     orderComment?: string,
     totalOverride?: number
-  ) => {
+  ): Promise<boolean> => {
     if (editingOrder) {
       const updatedOrder = await store.updateOrder(
         editingOrder.id,
@@ -248,11 +248,11 @@ export function EposTerminal() {
         orderComment,
         totalOverride
       )
-      if (!updatedOrder) return
+      if (!updatedOrder) return false
       setEditingOrder(null)
       setSelectedOrderId(updatedOrder.id)
       setView("orders")
-      return
+      return true
     }
 
     const placedOrder = await store.placeOrder(
@@ -263,10 +263,11 @@ export function EposTerminal() {
       orderComment,
       totalOverride
     )
-    if (!placedOrder) return
+    if (!placedOrder) return false
     setSelectedOrderId(placedOrder.id)
     setView("orders")
     printOrderReceipt(placedOrder)
+    return true
   }
 
   const handleEditOrder = (order: Order) => {

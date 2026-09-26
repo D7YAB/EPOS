@@ -298,6 +298,7 @@ export function useEposStore() {
 
   const basketTotal = basket.reduce((sum, b) => sum + calcLineTotal(b), 0)
   const basketCount = basket.reduce((sum, b) => sum + b.quantity, 0)
+  const orderRequestRef = useRef(false)
 
   const placeOrder = useCallback(
     async (
@@ -308,7 +309,8 @@ export function useEposStore() {
       orderComment?: string,
       totalOverride?: number
     ): Promise<Order | null> => {
-      if (basket.length === 0) return null
+      if (orderRequestRef.current || basket.length === 0) return null
+      orderRequestRef.current = true
 
       const orderItems: OrderItem[] = basket.map((b) => ({
         item: b.item,
@@ -356,6 +358,8 @@ export function useEposStore() {
       } catch (error) {
         console.error("Place order failed:", error)
         return null
+      } finally {
+        orderRequestRef.current = false
       }
     },
     [basket, basketTotal, refreshOrders]
@@ -371,7 +375,8 @@ export function useEposStore() {
       orderComment?: string,
       totalOverride?: number
     ): Promise<Order | null> => {
-      if (basket.length === 0) return null
+      if (orderRequestRef.current || basket.length === 0) return null
+      orderRequestRef.current = true
 
       const orderItems: OrderItem[] = basket.map((entry) => ({
         item: entry.item,
@@ -420,6 +425,8 @@ export function useEposStore() {
       } catch (error) {
         console.error("Update order failed:", error)
         return null
+      } finally {
+        orderRequestRef.current = false
       }
     },
     [basket, basketTotal, refreshOrders]
