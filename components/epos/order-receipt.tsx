@@ -25,6 +25,7 @@ import { useCountdown } from "@/hooks/use-countdown"
 
 type OrderReceiptProps = {
   order: Order | null
+  displayNumber?: number
   onUpdateStatus: (orderId: string, status: OrderStatus) => void
   onPrintOrder?: (order: Order) => void
   onEditOrder?: (order: Order) => void
@@ -107,6 +108,7 @@ function calcItemsSubtotal(order: Order): number {
 
 export function OrderReceipt({
   order,
+  displayNumber,
   onUpdateStatus,
   onPrintOrder,
   onEditOrder,
@@ -124,6 +126,7 @@ export function OrderReceipt({
   return (
     <OrderReceiptContent
       order={order}
+      displayNumber={displayNumber}
       onUpdateStatus={onUpdateStatus}
       onPrintOrder={onPrintOrder}
       onEditOrder={onEditOrder}
@@ -133,11 +136,13 @@ export function OrderReceipt({
 
 function OrderReceiptContent({
   order,
+  displayNumber,
   onUpdateStatus,
   onPrintOrder,
   onEditOrder,
 }: {
   order: Order
+  displayNumber?: number
   onUpdateStatus: (orderId: string, status: OrderStatus) => void
   onPrintOrder?: (order: Order) => void
   onEditOrder?: (order: Order) => void
@@ -186,7 +191,7 @@ function OrderReceiptContent({
               Order
             </p>
             <p className="text-3xl font-bold text-card-foreground">
-              #{String(order.orderNumber).padStart(3, "0")}
+              #{String(displayNumber ?? order.orderNumber).padStart(3, "0")}
             </p>
           </div>
           <div className="flex max-w-[70%] flex-wrap items-center justify-end gap-1.5">

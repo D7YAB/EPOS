@@ -54,6 +54,7 @@ type CheckoutPageProps = {
   orders: Order[];
   deliveryCharges: DeliveryCharge[];
   editingOrder?: Order | null;
+  editingOrderNumber?: number;
   onPlaceOrder: (
     orderType: OrderType,
     customer: CustomerDetails,
@@ -123,6 +124,7 @@ export function CheckoutPage({
   orders,
   deliveryCharges,
   editingOrder,
+  editingOrderNumber,
   onPlaceOrder,
   onBack,
 }: CheckoutPageProps) {
@@ -311,7 +313,7 @@ export function CheckoutPage({
                 Editing existing order
               </p>
               <p className="text-sm font-semibold text-card-foreground">
-                Order #{String(editingOrder.orderNumber).padStart(3, "0")}
+                Order #{String(editingOrderNumber ?? editingOrder.orderNumber).padStart(3, "0")}
               </p>
             </div>
             <p className="text-xs text-muted-foreground">
@@ -732,7 +734,7 @@ export function CheckoutPage({
             className="w-full rounded-xl bg-primary py-4 text-base font-bold uppercase tracking-wider text-primary-foreground transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {editingOrder
-              ? `Save Order #${String(editingOrder.orderNumber).padStart(3, "0")} - £${finalTotal.toFixed(2)}`
+              ? `Save Order #${String(editingOrderNumber ?? editingOrder.orderNumber).padStart(3, "0")} - £${finalTotal.toFixed(2)}`
               : `Confirm & Place Order - £${finalTotal.toFixed(2)}`}
           </button>
         </div>

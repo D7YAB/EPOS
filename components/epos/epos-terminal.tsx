@@ -25,12 +25,13 @@ import { AnalyticsPanel } from "./analytics-panel"
 import { MenuEditor } from "./menu-editor"
 import { SettingsPanel, type DeliveryCharge } from "./settings-panel"
 import { cn } from "@/lib/utils"
-import type {
-  OrderType,
-  CustomerDetails,
-  PaymentStatus,
-  PaymentMethod,
-  Order,
+import {
+  dailyOrderNumbers,
+  type OrderType,
+  type CustomerDetails,
+  type PaymentStatus,
+  type PaymentMethod,
+  type Order,
 } from "@/lib/menu-data"
 
 type View = "menu" | "checkout" | "orders" | "analytics" | "editMenu" | "settings"
@@ -107,6 +108,7 @@ export function EposTerminal() {
   }
 
   const todaysOrders = store.orders.filter((o) => isToday(o.createdAt))
+  const dailyNumbers = dailyOrderNumbers(todaysOrders)
 
   const selectedOrder =
     todaysOrders.find((o) => o.id === selectedOrderId) ?? null
@@ -177,7 +179,7 @@ export function EposTerminal() {
     receiptWindow.document.write(`
       <html>
         <head>
-          <title>Order #${String(order.orderNumber).padStart(3, "0")}</title>
+          <title>Order #${String(dailyNumbers.get(order.id) ?? order.orderNumber).padStart(3, "0")}</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 16px; color: #111; }
             h1 { margin: 0 0 4px; font-size: 20px; }
@@ -423,6 +425,9 @@ export function EposTerminal() {
           orders={store.orders}
           deliveryCharges={deliveryCharges}
           editingOrder={editingOrder}
+          editingOrderNumber={
+            editingOrder ? dailyNumbers.get(editingOrder.id) : undefined
+          }
           onPlaceOrder={handlePlaceOrder}
           onBack={() => setView("menu")}
         />
@@ -474,7 +479,9 @@ export function EposTerminal() {
               basket={store.basket}
               basketTotal={store.basketTotal}
               basketCount={store.basketCount}
-              editingOrderNumber={editingOrder?.orderNumber}
+              editingOrderNumber={
+                editingOrder ? dailyNumbers.get(editingOrder.id) : undefined
+              }
               onRemoveItem={store.removeFromBasket}
               onIncrementItem={store.incrementBasketItem}
               onClear={store.clearBasket}
@@ -493,6 +500,9 @@ export function EposTerminal() {
           <div className="col-span-2 min-h-0 overflow-hidden">
             <OrderReceipt
               order={selectedOrder}
+              displayNumber={
+                selectedOrder ? dailyNumbers.get(selectedOrder.id) : undefined
+              }
               onUpdateStatus={store.updateOrderStatus}
               onPrintOrder={printOrderReceipt}
               onEditOrder={handleEditOrder}

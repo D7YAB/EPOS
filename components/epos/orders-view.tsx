@@ -14,7 +14,7 @@ import {
   MessageSquare,
   XCircle,
 } from "lucide-react"
-import type { Order, OrderStatus, OrderType } from "@/lib/menu-data"
+import { dailyOrderNumbers, type Order, type OrderStatus, type OrderType } from "@/lib/menu-data"
 import { cn } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useCountdown } from "@/hooks/use-countdown"
@@ -59,20 +59,6 @@ const orderTypeConfig: Record<
   delivery: { label: "Delivery", icon: Truck },
   collection: { label: "Collection", icon: ShoppingBag },
   instore: { label: "In-Store", icon: UtensilsCrossed },
-}
-
-function dailyOrderNumbers(orders: Order[]) {
-  const numbers = new Map<string, number>()
-  ;[...orders]
-    .sort(
-      (a, b) =>
-        a.createdAt.getTime() - b.createdAt.getTime() ||
-        a.id.localeCompare(b.id)
-    )
-    .forEach((order, index) => {
-      numbers.set(order.id, index + 1)
-    })
-  return numbers
 }
 
 function formatTime(date: Date) {

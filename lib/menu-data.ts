@@ -148,6 +148,20 @@ export type OrderItem = {
   comment?: string
 }
 
+export function dailyOrderNumbers(orders: Order[]) {
+  const numbers = new Map<string, number>()
+  ;[...orders]
+    .sort(
+      (a, b) =>
+        a.createdAt.getTime() - b.createdAt.getTime() ||
+        a.id.localeCompare(b.id)
+    )
+    .forEach((order, index) => {
+      numbers.set(order.id, index + 1)
+    })
+  return numbers
+}
+
 export type Order = {
   id: string
   orderNumber: number
