@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import {
   TrendingUp,
   ShoppingBag,
@@ -17,6 +18,14 @@ import {
 } from "lucide-react"
 import type { Order, OrderType, OrderStatus } from "@/lib/menu-data"
 import { cn } from "@/lib/utils"
+
+type AnalyticsView = "daily" | "weekly" | "monthly"
+
+const viewLabels: Record<AnalyticsView, string> = {
+  daily: "Daily",
+  weekly: "Weekly",
+  monthly: "Monthly",
+}
 
 type AnalyticsPanelProps = {
   orders: Order[]
@@ -36,19 +45,60 @@ function calcOrderItemLineTotal(entry: Order["items"][number]): number {
   return (base + addOnsTotal + customAddOnsTotal) * entry.quantity
 }
 
+function localDateValue(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
+
 export function AnalyticsPanel({ orders, onClose }: AnalyticsPanelProps) {
-  const todayOrders = orders.filter((o) => {
-    const today = new Date()
-    return (
-      o.createdAt.getDate() === today.getDate() &&
-      o.createdAt.getMonth() === today.getMonth() &&
-      o.createdAt.getFullYear() === today.getFullYear()
-    )
+  const [selectedDate, setSelectedDate] = useState(() => localDateValue(new Date()))
+  const [view, setView] = useState<AnalyticsView>("daily")
+  const now = new Date()
+  const today = localDateValue(now)
+  const periodStart = new Date(`${selectedDate}T00:00:00`)
+
+  if (view === "weekly") {
+    // Calendar weeks run from Monday to Sunday.
+    periodStart.setDate(periodStart.getDate() - ((periodStart.getDay() + 6) % 7))
+  } else if (view === "monthly") {
+    periodStart.setDate(1)
+  }
+
+  const periodEnd = new Date(periodStart)
+  if (view === "monthly") {
+    periodEnd.setMonth(periodEnd.getMonth() + 1)
+  } else {
+    periodEnd.setDate(periodEnd.getDate() + (view === "weekly" ? 7 : 1))
+  }
+
+  const periodOrders = orders.filter(
+    (order) => order.createdAt >= periodStart && order.createdAt < periodEnd
+  )
+  const isCurrentPeriod = now >= periodStart && now < periodEnd
+  const lastDay = new Date(periodEnd)
+  lastDay.setDate(lastDay.getDate() - 1)
+  const shortDate = (date: Date) => date.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
   })
+  const dateLabel = view === "monthly"
+    ? periodStart.toLocaleDateString("en-GB", { month: "long", year: "numeric" })
+    : view === "weekly"
+      ? `${shortDate(periodStart)} – ${shortDate(lastDay)}`
+      : periodStart.toLocaleDateString("en-GB", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        })
+  const currentPeriodLabel = view === "daily" ? "Today" : view === "weekly" ? "This week" : "This month"
 
   // Revenue
-  const cancelledOrders = todayOrders.filter((o) => o.status === "cancelled")
-  const nonCancelledOrders = todayOrders.filter((o) => o.status !== "cancelled")
+  const cancelledOrders = periodOrders.filter((o) => o.status === "cancelled")
+  const nonCancelledOrders = periodOrders.filter((o) => o.status !== "cancelled")
   const totalRevenue = nonCancelledOrders.reduce((sum, o) => sum + o.total, 0)
   const completedOrders = nonCancelledOrders.filter(
     (o) => o.status === "collected" || o.status === "delivered"
@@ -83,13 +133,13 @@ export function AnalyticsPanel({ orders, onClose }: AnalyticsPanelProps) {
 
   // Status breakdown
   const ordersByStatus: Record<OrderStatus, number> = {
-    preparing: todayOrders.filter((o) => o.status === "preparing").length,
-    ready: todayOrders.filter((o) => o.status === "ready").length,
-    out_for_delivery: todayOrders.filter((o) => o.status === "out_for_delivery")
+    preparing: periodOrders.filter((o) => o.status === "preparing").length,
+    ready: periodOrders.filter((o) => o.status === "ready").length,
+    out_for_delivery: periodOrders.filter((o) => o.status === "out_for_delivery")
       .length,
-    collected: todayOrders.filter((o) => o.status === "collected").length,
-    delivered: todayOrders.filter((o) => o.status === "delivered").length,
-    cancelled: todayOrders.filter((o) => o.status === "cancelled").length,
+    collected: periodOrders.filter((o) => o.status === "collected").length,
+    delivered: periodOrders.filter((o) => o.status === "delivered").length,
+    cancelled: periodOrders.filter((o) => o.status === "cancelled").length,
   }
 
   const statusConfig: Record<
@@ -166,26 +216,67 @@ export function AnalyticsPanel({ orders, onClose }: AnalyticsPanelProps) {
     <div className="flex min-h-0 flex-1 flex-col p-4 lg:p-6">
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto rounded-xl border border-border bg-card">
         {/* Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-border px-6 py-4">
-          <div className="flex items-center gap-3">
-            <TrendingUp className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-bold text-card-foreground">
-              Daily Analytics
-            </h2>
-            <span className="rounded-full bg-secondary px-3 py-0.5 text-xs font-medium text-muted-foreground">
-              {new Date().toLocaleDateString([], {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-              })}
-            </span>
+        <div className="flex shrink-0 flex-col gap-4 border-b border-border px-6 py-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              <h2 className="text-lg font-bold text-card-foreground">
+                {viewLabels[view]} Analytics
+              </h2>
+              <span className="rounded-full bg-secondary px-3 py-0.5 text-xs font-medium text-muted-foreground">
+                {dateLabel}
+              </span>
+            </div>
+            <button
+              onClick={onClose}
+              aria-label="Close analytics"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div role="group" aria-label="Analytics view" className="flex gap-1 rounded-lg bg-secondary p-1">
+              {(Object.keys(viewLabels) as AnalyticsView[]).map((option) => (
+                <button
+                  key={option}
+                  onClick={() => setView(option)}
+                  aria-pressed={view === option}
+                  className={cn(
+                    "rounded-md px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                    view === option
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {viewLabels[option]}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <label htmlFor="analytics-date" className="text-sm font-medium text-muted-foreground">
+                {view === "monthly" ? "Month" : view === "weekly" ? "Week of" : "Date"}
+              </label>
+              <input
+                id="analytics-date"
+                type={view === "monthly" ? "month" : "date"}
+                value={view === "monthly" ? selectedDate.slice(0, 7) : view === "weekly" ? localDateValue(periodStart) : selectedDate}
+                onChange={(event) => {
+                  if (event.target.value) {
+                    setSelectedDate(view === "monthly" ? `${event.target.value}-01` : event.target.value)
+                  }
+                }}
+                className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              />
+              <button
+                onClick={() => setSelectedDate(today)}
+                disabled={isCurrentPeriod}
+                className="rounded-lg border border-border px-3 py-2 text-sm font-semibold text-card-foreground transition-colors hover:bg-secondary disabled:cursor-default disabled:opacity-50"
+              >
+                {currentPeriodLabel}
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Content */}
@@ -374,7 +465,7 @@ export function AnalyticsPanel({ orders, onClose }: AnalyticsPanelProps) {
                   Total Orders
                 </span>
                 <span className="text-lg font-bold text-card-foreground">
-                  {todayOrders.length}
+                  {periodOrders.length}
                 </span>
               </div>
             </div>
@@ -386,7 +477,7 @@ export function AnalyticsPanel({ orders, onClose }: AnalyticsPanelProps) {
               </h3>
               {topItems.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  No orders yet today
+                  No orders for this {view === "daily" ? "day" : view === "weekly" ? "week" : "month"}
                 </p>
               ) : (
                 <div className="flex flex-col gap-2">

@@ -2,6 +2,7 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ||
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY
 
 function getConfig() {
@@ -11,7 +12,7 @@ function getConfig() {
 
   if (!SUPABASE_KEY) {
     throw new Error(
-      "Missing Supabase key. Set SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY (or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY)."
+      "Missing Supabase key. Set SUPABASE_SERVICE_ROLE_KEY, NEXT_PUBLIC_SUPABASE_ANON_KEY, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY."
     )
   }
 
@@ -44,7 +45,10 @@ export async function supabaseRest<T>(
     method,
     headers: {
       apikey: key,
-      Authorization: `Bearer ${key}`,
+      // Publishable and secret API keys are not JWT bearer tokens.
+      ...(!key.startsWith("sb_publishable_") && !key.startsWith("sb_secret_")
+        ? { Authorization: `Bearer ${key}` }
+        : {}),
       "Content-Type": "application/json",
       ...(prefer ? { Prefer: prefer } : {}),
     },

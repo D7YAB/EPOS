@@ -6,13 +6,9 @@ create table if not exists public.delivery_postcode_charges (
 
 alter table public.delivery_postcode_charges enable row level security;
 
+-- Match main: delivery rates can be managed using the public key.
+grant select, insert, update, delete on table public.delivery_postcode_charges to anon, authenticated, service_role;
+drop policy if exists "read_delivery_postcode_charges" on public.delivery_postcode_charges;
 drop policy if exists "open_delivery_postcode_charges" on public.delivery_postcode_charges;
-create policy "open_delivery_postcode_charges"
-  on public.delivery_postcode_charges
-  for all
-  to anon, authenticated
-  using (true)
-  with check (true);
-
-grant select, insert, update, delete on public.delivery_postcode_charges to anon, authenticated;
-
+create policy "open_delivery_postcode_charges" on public.delivery_postcode_charges
+  for all to anon, authenticated using (true) with check (true);

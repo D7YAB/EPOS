@@ -37,7 +37,7 @@ type View = "menu" | "checkout" | "orders" | "analytics" | "editMenu" | "setting
 
 export function EposTerminal() {
   const [view, setView] = useState<View>("menu")
-  const [activeCategory, setActiveCategory] = useState("burgers")
+  const [selectedCategory, setActiveCategory] = useState("")
   const [menuSearch, setMenuSearch] = useState("")
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
   const [editingOrder, setEditingOrder] = useState<Order | null>(null)
@@ -45,6 +45,9 @@ export function EposTerminal() {
   const [mounted, setMounted] = useState(false)
   const store = useEposStore()
   const menuStore = useMenuStore()
+  const activeCategory = menuStore.categories.some((category) => category.id === selectedCategory)
+    ? selectedCategory
+    : (menuStore.categories[0]?.id ?? "")
   const { theme, setTheme } = useTheme()
 
   useEffect(() => {
@@ -190,7 +193,7 @@ export function EposTerminal() {
         </head>
         <body>
         <div style="display:flex; justify-content:space-between; align-items:center;">
-          <h1>Diyab Ocean</h1>
+          <h1>Hungry Haddock</h1>
           <p>Order #${String(order.orderNumber).padStart(3, "0")}</p>
         </div>
           <p>${createdAt}</p>
@@ -289,7 +292,7 @@ export function EposTerminal() {
         <div className="flex items-center gap-3">
           <UtensilsCrossed className="h-6 w-6 text-primary" />
           <h1 className="text-lg font-bold tracking-tight text-foreground">
-            Diyab Ocean
+            Hungry Haddock
           </h1>
         </div>
 

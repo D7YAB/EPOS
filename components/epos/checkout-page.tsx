@@ -175,9 +175,9 @@ export function CheckoutPage({
 
   const canSubmit = (() => {
     if (paymentStatus === "paid" && !paymentMethod) return false;
-    if (orderType === "instore") return name.trim().length > 0;
+    if (orderType === "instore") return true;
     if (orderType === "collection")
-      return name.trim().length > 0 && phone.trim().length > 0;
+      return name.trim().length > 0;
     if (orderType === "delivery")
       return (
         phone.trim().length > 0 &&
@@ -249,10 +249,10 @@ export function CheckoutPage({
     if (!canSubmit) return;
     const customer: CustomerDetails = {};
     if (orderType === "instore") {
-      customer.name = name.trim();
+      if (name.trim()) customer.name = name.trim();
     } else if (orderType === "collection") {
       customer.name = name.trim();
-      customer.phone = phone.trim();
+      if (phone.trim()) customer.phone = phone.trim();
     } else {
       if (name.trim()) customer.name = name.trim();
       customer.phone = phone.trim();
@@ -376,17 +376,19 @@ export function CheckoutPage({
           </h2>
           <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5">
             <div className="flex flex-col gap-1.5">
-              <label className="flex items-center gap-2 text-sm font-semibold text-card-foreground">
+              <label htmlFor="checkout-customer-name" className="flex items-center gap-2 text-sm font-semibold text-card-foreground">
                 <User className="h-4 w-4 text-muted-foreground" />
                 Name
-                {orderType === "delivery" && (
+                {orderType !== "collection" && (
                   <span className="text-xs font-normal text-muted-foreground">
                     (optional)
                   </span>
                 )}
               </label>
               <input
+                id="checkout-customer-name"
                 type="text"
+                required={orderType === "collection"}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Customer name"
@@ -396,12 +398,19 @@ export function CheckoutPage({
 
             {(orderType === "collection" || orderType === "delivery") && (
               <div className="flex flex-col gap-1.5">
-                <label className="flex items-center gap-2 text-sm font-semibold text-card-foreground">
+                <label htmlFor="checkout-customer-phone" className="flex items-center gap-2 text-sm font-semibold text-card-foreground">
                   <Phone className="h-4 w-4 text-muted-foreground" />
                   Phone Number
+                  {orderType === "collection" && (
+                    <span className="text-xs font-normal text-muted-foreground">
+                      (optional)
+                    </span>
+                  )}
                 </label>
                 <input
+                  id="checkout-customer-phone"
                   type="tel"
+                  required={orderType === "delivery"}
                   value={phone}
                   onChange={(e) => {
                     const value = e.target.value;

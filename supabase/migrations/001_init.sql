@@ -81,27 +81,50 @@ alter table public.orders enable row level security;
 alter table public.order_items enable row level security;
 alter table public.delivery_postcode_charges enable row level security;
 
+-- Main-style public-key access, explicitly approved by the owner.
+-- Limited to EPOS tables; a server key is optional.
+grant usage on schema public to anon, authenticated, service_role;
+
+grant select, insert, update, delete on table public.categories to anon, authenticated, service_role;
+drop policy if exists "read_categories" on public.categories;
 drop policy if exists "open_categories" on public.categories;
-create policy "open_categories" on public.categories for all to anon, authenticated using (true) with check (true);
+create policy "open_categories" on public.categories
+  for all to anon, authenticated using (true) with check (true);
 
+grant select, insert, update, delete on table public.menu_items to anon, authenticated, service_role;
+drop policy if exists "read_menu_items" on public.menu_items;
 drop policy if exists "open_menu_items" on public.menu_items;
-create policy "open_menu_items" on public.menu_items for all to anon, authenticated using (true) with check (true);
+create policy "open_menu_items" on public.menu_items
+  for all to anon, authenticated using (true) with check (true);
 
+grant select, insert, update, delete on table public.product_variations to anon, authenticated, service_role;
+drop policy if exists "read_product_variations" on public.product_variations;
 drop policy if exists "open_product_variations" on public.product_variations;
-create policy "open_product_variations" on public.product_variations for all to anon, authenticated using (true) with check (true);
+create policy "open_product_variations" on public.product_variations
+  for all to anon, authenticated using (true) with check (true);
 
+grant select, insert, update, delete on table public.product_add_ons to anon, authenticated, service_role;
+drop policy if exists "read_product_add_ons" on public.product_add_ons;
 drop policy if exists "open_product_add_ons" on public.product_add_ons;
-create policy "open_product_add_ons" on public.product_add_ons for all to anon, authenticated using (true) with check (true);
+create policy "open_product_add_ons" on public.product_add_ons
+  for all to anon, authenticated using (true) with check (true);
 
+grant select, insert, update, delete on table public.orders to anon, authenticated, service_role;
+drop policy if exists "read_orders" on public.orders;
 drop policy if exists "open_orders" on public.orders;
-create policy "open_orders" on public.orders for all to anon, authenticated using (true) with check (true);
+create policy "open_orders" on public.orders
+  for all to anon, authenticated using (true) with check (true);
 
+grant select, insert, update, delete on table public.order_items to anon, authenticated, service_role;
+drop policy if exists "read_order_items" on public.order_items;
 drop policy if exists "open_order_items" on public.order_items;
-create policy "open_order_items" on public.order_items for all to anon, authenticated using (true) with check (true);
+create policy "open_order_items" on public.order_items
+  for all to anon, authenticated using (true) with check (true);
 
+grant select, insert, update, delete on table public.delivery_postcode_charges to anon, authenticated, service_role;
+drop policy if exists "read_delivery_postcode_charges" on public.delivery_postcode_charges;
 drop policy if exists "open_delivery_postcode_charges" on public.delivery_postcode_charges;
-create policy "open_delivery_postcode_charges" on public.delivery_postcode_charges for all to anon, authenticated using (true) with check (true);
+create policy "open_delivery_postcode_charges" on public.delivery_postcode_charges
+  for all to anon, authenticated using (true) with check (true);
 
-grant usage on schema public to anon, authenticated;
-grant select, insert, update, delete on all tables in schema public to anon, authenticated;
-grant usage, select on all sequences in schema public to anon, authenticated;
+grant usage, select on sequence public.orders_order_number_seq to anon, authenticated, service_role;
